@@ -59,72 +59,14 @@ pageWithSidebar(
                                                    "Semicolon" = ";")),
                                     tooltip(refId = "sep", text = tags$img(src='file_sep.png', width='400px'), placement = "auto left"),
                                     hr(),
-                                    fluidRow(
-                                      column(width = 6,
-                                             actionButton(inputId = "refresh", label = "Refresh", icon = icon("refresh")),
-                                             tooltip(refId = "refresh", text = "Redraw the plot")
-                                      ),
-                                      column(width = 6,
-                                             actionButton(inputId = "exit", label = "Exit", class = "btn btn-danger")
-                                      )
-                                    )
+     
+                                    actionButton(inputId = "refresh", label = "Refresh", icon = icon("refresh")),
+                                    tooltip(refId = "refresh", text = "Redraw the plot")
+
+                         
+        
                            ),##EndOf::Tab_1
                            
-                           tabPanel("Login",
-                                    div(align = "center", 
-                                        fluidRow(
-                                          column(width = 2, offset = 5,
-                                                 h5("Login")
-                                          ),
-                                          column(width = 1, offset = 2,
-                                                 actionButton("infoButton", "", icon = icon("question")))
-                                        )
-                                    ),
-                                    uiOutput("infobox"),
-                                    div(align = "center", htmlOutput("status.msg")),
-                                    # Login for own data sets
-                                    fluidRow(
-                                      column(width = 6,
-                                             textInput(inputId = "user", "Username", value = "")
-                                      ),
-                                      column(width = 6,
-                                             textInput(inputId = "pw", "Password", value = "")
-                                      )
-                                    ),
-                                    fluidRow(
-                                      column(width = 3,
-                                             actionButton("enter", "Enter", class = "btn btn-success")
-                                      ),
-                                      column(width = 6, offset = 3,
-                                             actionButton("newAccount","Create new account")
-                                      )
-                                    ),
-                                    div(align = "center", h5("Data sets")),
-                                    fluidRow(
-                                      column(width = 6,
-                                             selectInput(inputId = "serverData", "Plot data set", choices = "")
-                                      ),
-                                      column(width = 6,
-                                             selectInput(inputId = "del.dataset", "Delete selected data sets", choices = "", multiple = TRUE)
-                                      )
-                                    ),
-                                    fluidRow(
-                                      column(width = 6, offset =6,
-                                             actionButton("delete", "Delete", class = "btn btn-danger")
-                                      )),
-                                    div(align = "center", h5("Upload new data set")),
-                                    uiOutput("file2server"),
-                                    textInput(inputId = "filenameUpload", label = "Filename", "choose a name"),
-                                    fluidRow(
-                                      column(width = 6,
-                                             actionButton("upload", "Upload file", icon = icon("upload"))
-                                      ),
-                                      column(width = 1, offsett = 5,
-                                             #helpPopup("Help", "...", placement='top', trigger='click')
-                                             actionButton("logout", "Logout")
-                                      )
-                                    )
-                           ),
                            
                            # Tab 2: Statistical information
                            tabPanel("Statistics",                             
@@ -133,7 +75,7 @@ pageWithSidebar(
                                       column(width = 6,
                                              checkboxInput(inputId = "summary",
                                                            label = "Show summary",
-                                                           value = FALSE),
+                                                           value = TRUE),
                                              tooltip(refId = "summary", text = "Adds numerical output to the plot")
                                       ),
                                       column(width = 6,
@@ -151,24 +93,27 @@ pageWithSidebar(
                                              tooltip(refId = "sumpos", attr = "for", text = "Position of the statistical summary. The keyword \"Subtitle\" will only work if no plot subtitle is used.")
                                       )
                                     ),
+                                    selectInput(inputId = "summary.method",
+                                                label = "Summary method",
+                                                selected = "unweighted",
+                                                choices = list("Unweighted" = "unweighted",
+                                                               "Weighted" = "weighted",
+                                                               "Monte Carlo" = "MCM")),
+                                    tooltip(refId = "summary.method", attr = "for", text = "Keyword indicating the method used to calculate the statistic summary. See calc_Statistics for details."),
+                                    
                                     checkboxGroupInput(inputId = "stats",
                                                        label = "Parameters", 
                                                        selected = c("n","mean"),
                                                        choices = c("n" = "n",
                                                                    "Mean" = "mean",
-                                                                   "weighted Mean" = "mean.weighted",
                                                                    "Median" = "median",
-                                                                   "weighted Median" = "median.weighted",
-                                                                   "rel. Standard deviation" = "sdrel",
-                                                                   "abs. Standard deviation" = "sdabs",
-                                                                   "rel. Standard error" = "serel",
-                                                                   "abs. Standard error" = "seabs",
-                                                                   #"25 % Quartile" = "q25", #not implemented yet
-                                                                   #"75 % Quartile" = "q75", #not implemented yet
-                                                                   "KDEmax"  = "kdemax",
+                                                                   "rel. Standard deviation" = "sd.rel",
+                                                                   "abs. Standard deviation" = "sd.abs",
+                                                                   "rel. Standard error" = "se.rel",
+                                                                   "abs. Standard error" = "se.abs",
                                                                    "Skewness" = "skewness",
                                                                    "Kurtosis" = "kurtosis",
-                                                                   "Confidence interval" = "in.ci")),
+                                                                   "% in 2 sigma range" = "in.2s")),
                                     tooltip(refId = "stats", text = "Statistical parameters to be shown in the summary"),
                                     br(),
                                     div(align = "center", h5("Datapoint labels")),
@@ -202,22 +147,11 @@ pageWithSidebar(
                                       )
                                     ),
                                     div(align = "center", h5("Scaling")),
-                                    fluidRow(
-                                      column(width = 6,
-                                             # inject sliderInput from Server.R
-                                             div(id="cent", # DIV with id for tooltip
-                                                 uiOutput(outputId = "centValue")
-                                             ),
-                                             tooltip(refId = "cent", text =  "User-defined central value, primarily used for horizontal centering of the z-axis")
-                                      ),
-                                      column(width = 6,
-                                             # inject sliderInput from Server.R
-                                             div(id="bwKDE",
-                                                 uiOutput(outputId = "bw")
-                                             ),
-                                             tooltip(refId = "bwKDE", text = "Bin width of the kernel density estimate")
-                                      )
+                                    # inject sliderInput from Server.R
+                                    div(id="bwKDE",
+                                        uiOutput(outputId = "bw")
                                     ),
+                                    tooltip(refId = "bwKDE", text = "Bin width of the kernel density estimate"),
                                     fluidRow(
                                       column(width = 6,
                                              div(id="pratiodiv",
@@ -236,51 +170,73 @@ pageWithSidebar(
                                       )
                                     ),
                                     br(),
-                                    div(align = "center", h5("Centrality & Dispersion")),
-                                    checkboxInput(inputId = "addBar", 
-                                                  label = "Second 2-Sigma Bar",
-                                                  value = FALSE),
+                                    div(align = "center", h5("Centrality")),
+                                    
                                     # centrality can either be a keyword or numerical input
-                                    fluidRow(
-                                      column(width = 6,
-                                             selectInput(inputId = "centrality", 
-                                                         label = "Centrality",
-                                                         list("Mean" = "mean",
-                                                              "Median" = "median", 
-                                                              "Weighted mean" = "mean.weighted", 
-                                                              "Weighted median" = "median.weighted",
-                                                              "Custom value" = "custom")),
-                                             tooltip(refId = "centrality", text = "Measure of centrality, used for the standardisation, centering the plot and drawing the central line. When a second 2&sigma; bar is plotted the dataset is centered by the median.")
-                                      ),
-                                      column(width = 6,
-                                             selectInput(inputId = "dispersion", 
-                                                         label = "Measure of dispersion",
-                                                         list("1 sigma" = "sd",
-                                                              "2 sigma" = "2sd", 
-                                                              "95% quartile" = "qr",
-                                                              "Custom quartile" = "custom")),
-                                             tooltip(refId = "dispersion", text = "Measure of dispersion, used for drawing the polygon that depicts the spread in the dose distribution.")
-                                      )
-                                    ),
+                                    selectInput(inputId = "centrality", 
+                                                label = "Central Value",
+                                                list("Mean" = "mean",
+                                                     "Median" = "median", 
+                                                     "Weighted mean" = "mean.weighted", 
+                                                     "Custom value" = "custom")),
+                                    tooltip(refId = "centrality", text = "User-defined central value, used for centering of data."),
+                                    
+                                    conditionalPanel(condition = "input.centrality == 'custom'",
+                                                     uiOutput("centralityNumeric")),
+                                    
+                                    div(align = "center", h5("Dispersion")),
+                                    
+                                    selectInput(inputId = "dispersion", 
+                                                label = "Measure of dispersion",
+                                                list("Quartile range" = "qr",
+                                                     "1 sigma" = "sd",
+                                                     "2 sigma" = "2sd",
+                                                     "Custom percentile range" = "custom")),
+                                    tooltip(refId = "dispersion", text = "Measure of dispersion, used for drawing the polygon that depicts the spread in the dose distribution."),
+                                    
                                     conditionalPanel(condition = "input.dispersion == 'custom'",
                                                      numericInput(inputId = "cinn",
-                                                                  label = "x% quartile",
+                                                                  label = "x % percentile",
                                                                   value = 25,
                                                                   min = 0, 
                                                                   max = 100, 
-                                                                  step = 1)
-                                    ),
+                                                                  step = 1)),
+                                    
+                                    div(align = "center", HTML("<h5>2&sigma; bar</h5>")),
+                                    
                                     fluidRow(
                                       column(width = 6,
-                                             conditionalPanel(condition = "input.centrality == 'custom'",
-                                                              uiOutput("centralityNumeric"))
-                                      ),
-                                      
+                                             checkboxInput(inputId = "customSigBar", 
+                                                           label = HTML("Customise 2&sigma; bar"),
+                                                           value = FALSE)
+                                             ),
                                       column(width = 6,
-                                             conditionalPanel(condition = "input.centrality == 'custom'",
-                                                              uiOutput("centralityNumeric2"))
+                                             checkboxInput(inputId = "addBar", 
+                                                           label = HTML("Second 2&sigma; bar"),
+                                                           value = FALSE)
+                                             )
+                                    ),
+
+                                    
+                                    fluidRow(
+                                      column(width = 6, 
+                                             conditionalPanel(condition = "input.customSigBar == true",
+                                                              numericInput(inputId = "sigmabar1", 
+                                                                           label = HTML("2&sigma; bar 1"), 
+                                                                           min = 0, max = 100, 
+                                                                           value = 60)
+                                             )
+                                      ),
+                                      column(width = 6,
+                                             conditionalPanel(condition = "input.customSigBar == true",
+                                                              numericInput(inputId = "sigmabar2", 
+                                                                           label = HTML("2&sigma; bar 2"), 
+                                                                           min = 0, max = 100, 
+                                                                           value = 100)
+                                             )
                                       )
                                     ),
+                                    
                                     div(align = "center", h5("Central line")),
                                     
                                     fluidRow(
@@ -339,6 +295,8 @@ pageWithSidebar(
                                              tooltip(refId = "rotate", text = "Option to rotate the plot by 90&deg;.")
                                       )
                                     ),
+                                    checkboxInput(inputId = "boxplot", label = "Boxplot", value = FALSE),
+                                    tooltip(refId = "boxplot", text = "Option to add a boxplot to the dispersion part."),
                                     checkboxInput(inputId = "kde", label = "KDE", value = TRUE),
                                     tooltip(refId = "kde", text = "Option to add a KDE plot to the dispersion part."),
                                     checkboxInput(inputId = "histogram", label = "Histogram", value = TRUE),
@@ -351,20 +309,15 @@ pageWithSidebar(
                            tabPanel("Axis",
                                     div(align = "center", h5("X-axis")),
                                     fluidRow(
-                                      column(width = 4,
+                                      column(width = 6,
                                              textInput(inputId = "xlab1", 
                                                        label = "Label x-axis (upper)",
                                                        value = "Relative error [%]")
                                       ),
-                                      column(width = 4,
+                                      column(width = 6,
                                              textInput(inputId = "xlab2", 
                                                        label = "Label x-axis (lower)",
                                                        value = "Precision")
-                                      ),
-                                      column(width = 4,
-                                             textInput(inputId = "xlab3", 
-                                                       label = "Label x-axis (KDE)",
-                                                       value = "Density")
                                       )
                                     ),
                                     # inject sliderInput from Server.R
@@ -511,12 +464,28 @@ pageWithSidebar(
                            tabPanel("Lines",
                                     helpText("Here you can add additional lines."),
                                     # options for custom lines:
-                                    # 1 - z-value, 2 - color, 3 - label
+                                    # 1 - z-value, 2 - color, 3 - label, 4 - line type
                                     # only the options for the first line are shown
-                                    numericInput(inputId = "line1", 
-                                                 label = strong("Line #1"), 
-                                                 value =  NA, min = 0),
+                                    fluidRow(
+                                      column(width = 6,
+                                             numericInput(inputId = "line1", 
+                                                          label = strong("Line #1"), 
+                                                          value =  NA, min = 0)
+                                             ),
                                     tooltip(refId = "line1", text = "Numeric values of the additional lines to be added."),
+                                    column(width = 6,
+                                           selectInput(inputId = "linelty1", 
+                                                       label = "Line type",
+                                                       selected = 1,
+                                                       choices = list("Blank" = 0,
+                                                                      "Solid" = 1,
+                                                                      "Dashed" = 2,
+                                                                      "Dotted" = 3,
+                                                                      "Dot dash" = 4,
+                                                                      "Long dash" = 5,
+                                                                      "Two dash" = 6))
+                                    )
+                                    ),
                                     fluidRow(
                                       column(width = 6, 
                                              HTML("Choose a color<br>"),
@@ -531,49 +500,119 @@ pageWithSidebar(
                                     # conditional chain: if valid input (i.e. the z-value is > 0) is provided
                                     # for the previous line, show options for a new line (currently up to eight)
                                     conditionalPanel(condition = "input.line1 > 0",
-                                                     numericInput(inputId = "line2", strong("Line #2"), NA, min = 0),
+                                                     fluidRow(
+                                                       column(width = 6, numericInput(inputId = "line2", strong("Line #2"), NA, min = 0)),
+                                                       column(width = 6, selectInput(inputId = "linelty2", label = "Line type",selected = 1,
+                                                                                     choices = list("Blank" = 0, 
+                                                                                                    "Solid" = 1,
+                                                                                                    "Dashed" = 2,
+                                                                                                    "Dotted" = 3,
+                                                                                                    "Dot dash" = 4,
+                                                                                                    "Long dash" = 5,
+                                                                                                    "Two dash" = 6)))
+                                                     ),
                                                      fluidRow(
                                                        column(width = 6, HTML("Choose a color<br>"),jscolorInput(inputId = "colline2")),
                                                        column(width = 6, textInput("labline2","Label",value = ""))
                                                      )
                                     ),
                                     conditionalPanel(condition = "input.line2 > 0",
-                                                     numericInput(inputId = "line3", strong("Line #3"), NA, min = 0),
+                                                     fluidRow(
+                                                       column(width = 6, numericInput(inputId = "line3", strong("Line #3"), NA, min = 0)),
+                                                       column(width = 6, selectInput(inputId = "linelty3", label = "Line type",selected = 1,
+                                                                                     choices = list("Blank" = 0, 
+                                                                                                    "Solid" = 1,
+                                                                                                    "Dashed" = 2,
+                                                                                                    "Dotted" = 3,
+                                                                                                    "Dot dash" = 4,
+                                                                                                    "Long dash" = 5,
+                                                                                                    "Two dash" = 6)))
+                                                     ),
                                                      fluidRow(
                                                        column(width = 6, HTML("Choose a color<br>"),jscolorInput(inputId = "colline3")),
                                                        column(width = 6, textInput("labline3","Label",value = ""))
                                                      )
                                     ),
                                     conditionalPanel(condition = "input.line3 > 0",
-                                                     numericInput(inputId = "line4", strong("Line #4"), NA, min = 0),
+                                                     fluidRow(
+                                                       column(width = 6, numericInput(inputId = "line4", strong("Line #4"), NA, min = 0)),
+                                                       column(width = 6, selectInput(inputId = "linelty4", label = "Line type",selected = 1,
+                                                                                     choices = list("Blank" = 0, 
+                                                                                                    "Solid" = 1,
+                                                                                                    "Dashed" = 2,
+                                                                                                    "Dotted" = 3,
+                                                                                                    "Dot dash" = 4,
+                                                                                                    "Long dash" = 5,
+                                                                                                    "Two dash" = 6)))
+                                                     ),
                                                      fluidRow(
                                                        column(width = 6, HTML("Choose a color<br>"),jscolorInput(inputId = "colline4")),
                                                        column(width = 6, textInput("labline4","Label",value = ""))
                                                      )
                                     ),
                                     conditionalPanel(condition = "input.line4 > 0",
-                                                     numericInput(inputId = "line5", strong("Line #5"), NA, min = 0),
+                                                     fluidRow(
+                                                       column(width = 6, numericInput(inputId = "line5", strong("Line #5"), NA, min = 0)),
+                                                       column(width = 6, selectInput(inputId = "linelty5", label = "Line type",selected = 1,
+                                                                                     choices = list("Blank" = 0, 
+                                                                                                    "Solid" = 1,
+                                                                                                    "Dashed" = 2,
+                                                                                                    "Dotted" = 3,
+                                                                                                    "Dot dash" = 4,
+                                                                                                    "Long dash" = 5,
+                                                                                                    "Two dash" = 6)))
+                                                     ),
                                                      fluidRow(
                                                        column(width = 6, HTML("Choose a color<br>"),jscolorInput(inputId = "colline5")),
                                                        column(width = 6, textInput("labline5","Label",value = ""))
                                                      )
                                     ),
                                     conditionalPanel(condition = "input.line5 > 0",
-                                                     numericInput(inputId = "line6", strong("Line #6"), NA, min = 0),
+                                                     fluidRow(
+                                                       column(width = 6, numericInput(inputId = "line6", strong("Line #6"), NA, min = 0)),
+                                                       column(width = 6, selectInput(inputId = "linelty6", label = "Line type",selected = 1,
+                                                                                     choices = list("Blank" = 0, 
+                                                                                                    "Solid" = 1,
+                                                                                                    "Dashed" = 2,
+                                                                                                    "Dotted" = 3,
+                                                                                                    "Dot dash" = 4,
+                                                                                                    "Long dash" = 5,
+                                                                                                    "Two dash" = 6)))
+                                                     ),
                                                      fluidRow(
                                                        column(width = 6, HTML("Choose a color<br>"),jscolorInput(inputId = "colline6")),
                                                        column(width = 6, textInput("labline6","Label",value = ""))
                                                      )
                                     ),
                                     conditionalPanel(condition = "input.line6 > 0",
-                                                     numericInput(inputId = "line7", strong("Line #7"), NA, min = 0),
+                                                     fluidRow(
+                                                       column(width = 6, numericInput(inputId = "line7", strong("Line #7"), NA, min = 0)),
+                                                       column(width = 6, selectInput(inputId = "linelty7", label = "Line type",selected = 1,
+                                                                                     choices = list("Blank" = 0, 
+                                                                                                    "Solid" = 1,
+                                                                                                    "Dashed" = 2,
+                                                                                                    "Dotted" = 3,
+                                                                                                    "Dot dash" = 4,
+                                                                                                    "Long dash" = 5,
+                                                                                                    "Two dash" = 6)))
+                                                     ),
                                                      fluidRow(
                                                        column(width = 6, HTML("Choose a color<br>"),jscolorInput(inputId = "colline7")),
                                                        column(width = 6, textInput("labline7","Label",value = ""))
                                                      )
                                     ),
                                     conditionalPanel(condition = "input.line7 > 0",
-                                                     numericInput(inputId = "line8", strong("Line #8"), NA, min = 0),
+                                                     fluidRow(
+                                                       column(width = 6, numericInput(inputId = "line8", strong("Line #8"), NA, min = 0)),
+                                                       column(width = 6, selectInput(inputId = "linelty8", label = "Line type",selected = 1,
+                                                                                     choices = list("Blank" = 0, 
+                                                                                                    "Solid" = 1,
+                                                                                                    "Dashed" = 2,
+                                                                                                    "Dotted" = 3,
+                                                                                                    "Dot dash" = 4,
+                                                                                                    "Long dash" = 5,
+                                                                                                    "Two dash" = 6)))
+                                                     ),
                                                      fluidRow(
                                                        column(width = 6, HTML("Choose a color<br>"),jscolorInput(inputId = "colline8")),
                                                        column(width = 6, textInput("labline8","Label",value = ""))
@@ -674,7 +713,15 @@ pageWithSidebar(
                                     sliderInput(inputId = "alpha.grid",
                                                 label = "Transparency",
                                                 min = 0, max = 100, 
-                                                step = 1, value = 50)
+                                                step = 1, value = 50),
+                                    
+                                    br(),
+                                    div(align = "center", h5("Frame")),
+                                    selectInput(inputId = "frame", label = "Frame", selected = 1,
+                                                choices = list("No frame" = 0,
+                                                               "Origin at {0,0}" = 1,
+                                                               "Anchors at {0,-2}, {0,2}" = 2,
+                                                               "Rectangle" = 3))
                            ),##EndOf::Tab_7
                            
                            # Tab 8: add and customize legend
@@ -735,7 +782,8 @@ pageWithSidebar(
                                                     choices = c("Default"="default",
                                                                 "Journal"="journal"))
                                     ),
-                                    tooltip(refId = "layout", text = "The optional parameter layout allows to modify the entire plot more sophisticated. Each element of the plot can be addressed and its properties can be defined. This includes font type, size and decoration, colours and sizes of all plot items. To infer the definition of a specific layout style cf. get_Layout() or type eg. for the layout type \"journal\" get_Layout(\"journal\"). A layout type can be modified by the user by assigning new values to the list object.")
+                                    tooltip(refId = "layout", placement = "top",
+                                            text = "The optional parameter layout allows to modify the entire plot more sophisticated. Each element of the plot can be addressed and its properties can be defined. This includes font type, size and decoration, colours and sizes of all plot items. To infer the definition of a specific layout style cf. get_Layout() or type eg. for the layout type \"journal\" get_Layout(\"journal\"). A layout type can be modified by the user by assigning new values to the list object.")
                            ),
                            
                            # Tab 10: save plot as pdf, wmf or eps
