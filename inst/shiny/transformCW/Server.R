@@ -1,42 +1,49 @@
 ## Server.R
-library(Luminescence)
-library(RLumShiny)
-library(shiny)
-
-data("ExampleData.CW_OSL_Curve", envir = environment())
-data <- ExampleData.CW_OSL_Curve
-
 ## MAIN FUNCTION
-shinyServer(function(input, output, session) {
+function(input, output, session) {
   
-  # RECEIVE USER DATA ----
-  datGet<- reactive({
+  # input data (with default)
+  values <- reactiveValues(data_primary = ExampleData.CW_OSL_Curve,
+                           tdata = NULL)
+  
+  # check and read in file (DATA SET 1)
+  observeEvent(input$file, {
     inFile<- input$file
+    
     if(is.null(inFile)) 
-      return(NULL) 
+      return(NULL) # if no file was uploaded return NULL
     
-    t <- tryCatch(read.table(file = inFile$datapath,
-                             sep = input$sep, 
-                             quote = "", 
-                             header = input$headers),
-                  error = function(e) {
-                    return(NULL)
-                  })
+    values$data_primary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath 
+  })
+  
+  output$table_in_primary <- renderRHandsontable({
+    rhandsontable(values$data_primary, 
+                  height = 300, 
+                  colHeaders = c("Time", "Signal"), 
+                  rowHeaders = NULL)
+  })
+  
+  observeEvent(input$table_in_primary, {
     
-    if (is.null(t))
-      return(NULL)
+    # Workaround for rhandsontable issue #138 
+    # https://github.com/jrowen/rhandsontable/issues/138
+    # See detailed explanation in abanico application
+    df_tmp <- input$table_in_primary
+    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
+    df_tmp$params$rRowHeaders <- row_names
+    df_tmp$params$rowHeaders <- row_names
+    df_tmp$params$rDataDim <- as.list(c(length(row_names),
+                                        length(df_tmp$params$columns)))
+    if (df_tmp$changes$event == "afterRemoveRow")
+      df_tmp$changes$event <- "afterChange"
     
-    if (ncol(t) == 1)
-      return(NULL)
-    
-    return(t)
+    if (!is.null(hot_to_r(df_tmp)))
+      values$data_primary <- hot_to_r(df_tmp)
   })
   
   # TRANSFORM DATA
   observe({
-    if (!is.null(datGet()))
-      data <- datGet()
-    
+
     P <- input$p
     delta <- input$delta
     
@@ -61,7 +68,7 @@ shinyServer(function(input, output, session) {
     }
 
       
-    args <- list(data)
+    args <- list(values$data_primary)
     if (input$method == "CW2pHMi")
       if (delta >= 1)
         args <- append(args, delta)
@@ -69,33 +76,52 @@ shinyServer(function(input, output, session) {
       if (P >= 1)
         args <- append(args, P)
     
-    tdata <<- do.call(input$method, args)
+    values$tdata <- try(do.call(input$method, args))
   })
   
   output$main_plot <- renderPlot({
     
     # be reactive on method changes
-    datGet()
     input$method
     input$delta
     input$p
     
-    pargs <- list(tdata[ ,1], tdata[ ,2], 
+    if (inherits(values$tdata, "try-error")) {
+      plot(1, type="n", axes=F, xlab="", ylab="")
+      text(1, labels = paste(values$tdata, collapse = "\n"))
+      return()
+    }
+    
+    pargs <- list(values$tdata[,1], values$tdata[ ,2], 
                   log = paste0(ifelse(input$logx, "x", ""), ifelse(input$logy, "y", "")),
                   main = input$main,
                   xlab = input$xlab,
-                  ylab = input$ylab,
-                  cex = input$cex,
+                  ylab = input$ylab1,
                   type = input$type,
                   pch = ifelse(input$pch != "custom", as.integer(input$pch) - 1, input$custompch),
-                  col = ifelse(input$color != "custom", input$color, input$jscol1))
+                  col = ifelse(input$color != "custom", input$color, input$jscol1),
+                  bty = "n")
     
+    par(mar=c(5,4,4,5)+.1, cex = input$cex)
     do.call(plot, pargs)
+    
+    if (input$showCW) {
+      par(new = TRUE)
+      plot(values$data_primary, 
+           axes = FALSE, 
+           xlab = NA, 
+           ylab = NA, 
+           col = "red", 
+           type = input$type,
+           log = paste0(ifelse(input$logx, "x", ""), ifelse(input$logy, "y", "")))
+      axis(side = 4, col = "red", col.axis = "red")
+      mtext(input$ylab2, side = 4, line = 3, col = "red")
+    }
     
     output$exportScript <- downloadHandler(
       filename = function() { paste(input$filename, ".", "txt", sep="") },
       content = function(file) {
-        write.table(tdata, file, sep = ",", quote = FALSE, row.names = FALSE)
+        write.table(values$tdata, file, sep = ",", quote = FALSE, row.names = FALSE)
       },#EO content =,
       contentType = "text"
     )#EndOf::dowmloadHandler()
@@ -130,7 +156,20 @@ shinyServer(function(input, output, session) {
         }
         
         # plot curve 
+        par(mar=c(5,4,4,5)+.1, cex = input$cex)
         do.call(plot, args = pargs)
+        if (input$showCW) {
+          par(new = TRUE)
+          plot(values$data_primary, 
+               axes = FALSE, 
+               xlab = NA, 
+               ylab = NA, 
+               col = "red", 
+               type = input$type,
+               log = paste0(ifelse(input$logx, "x", ""), ifelse(input$logy, "y", "")))
+          axis(side = 4, col = "red", col.axis = "red")
+          mtext(input$ylab2, side = 4, line = 3, col = "red")
+        }
         
         dev.off()
       },#EO content =,
@@ -139,16 +178,9 @@ shinyServer(function(input, output, session) {
   })
   
   output$dataset <- renderDataTable({
-    # be reactive on method changes
-    datGet()
-    input$method
-    input$delta
-    input$p
-    
-    if (exists("tdata")){
-      tdata
-    }
+    if (!is.null(values$tdata))
+      values$tdata
   })
   
 
-})##EndOf::shinyServer(function(input, output)
+}##EndOf::function(input, output)
