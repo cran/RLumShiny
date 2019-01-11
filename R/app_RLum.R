@@ -19,7 +19,9 @@
 #' Filter Combinations \tab *filter* \tab [`plot_FilterCombinations`] \cr
 #' Fast Ratio \tab *fastratio* \tab [`calc_FastRatio`] \cr
 #' Fading Correction \tab *fading* \tab [`analyse_FadingMeasurement`], [`calc_FadingCorr`] \cr
-#' Test Stimulation Power \tab *teststimulationpower* \tab  [`plot_RLum`]
+#' Test Stimulation Power \tab *teststimulationpower* \tab  [`plot_RLum`] \cr
+#' Scale Gamma Dose Rate \tab *scalegamma* \tab `scale_GammaDose` \cr
+#' RCarb app \tab *RCarb* \tab [RCarb::model_DoseRate]
 #' }
 #'
 #' The `app_RLum()` function is just a wrapper for [`runApp`].
@@ -57,6 +59,8 @@
 #' app_RLum("fading")
 #' app_RLum("surfaceexposure")
 #' app_RLum("teststimulationpower")
+#' app_RLum("scalegamma")
+#' app_RLum("RCarb")
 #' }
 #'
 #' @md
@@ -74,7 +78,10 @@ app_RLum <- function(app = NULL, ...) {
                   "fastratio",
                   "fading",
                   "surfaceexposure",
-                  "teststimulationpower")
+                  "teststimulationpower",
+                  "scalegamma",
+                  "RCarb"
+                  )
 
   if (is.null(app)) {
 

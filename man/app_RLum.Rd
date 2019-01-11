@@ -33,7 +33,9 @@ CW Curve Transformation \tab \emph{transformCW} \tab \code{\link{CW2pHMi}}, \cod
 Filter Combinations \tab \emph{filter} \tab \code{\link{plot_FilterCombinations}} \cr
 Fast Ratio \tab \emph{fastratio} \tab \code{\link{calc_FastRatio}} \cr
 Fading Correction \tab \emph{fading} \tab \code{\link{analyse_FadingMeasurement}}, \code{\link{calc_FadingCorr}} \cr
-Test Stimulation Power \tab \emph{teststimulationpower} \tab  \code{\link{plot_RLum}}
+Test Stimulation Power \tab \emph{teststimulationpower} \tab  \code{\link{plot_RLum}} \cr
+Scale Gamma Dose Rate \tab \emph{scalegamma} \tab \code{scale_GammaDose} \cr
+RCarb app \tab \emph{RCarb} \tab \link[RCarb:model_DoseRate]{RCarb::model_DoseRate}
 }
 
 The \code{app_RLum()} function is just a wrapper for \code{\link{runApp}}.
@@ -61,6 +63,8 @@ app_RLum("fastratio")
 app_RLum("fading")
 app_RLum("surfaceexposure")
 app_RLum("teststimulationpower")
+app_RLum("scalegamma")
+app_RLum("RCarb")
 }
 
 }
