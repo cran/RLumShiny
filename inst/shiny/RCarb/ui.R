@@ -37,6 +37,8 @@ shinyUI(
               tabPanel(title = "Run calculation",
                fluidRow(
                  column(6,
+                  selectInput("conversion_factors", label = "Dose rate converison factors",
+                              choices = Reference_Data$DR_conv_factors$REFERENCE),
                   numericInput(
                     inputId = "length_step", label = "Step length", value = 1, min = 1, max = 100, width = "100%"),
                   numericInput(
@@ -59,7 +61,8 @@ shinyUI(
                 title = "Input template",
                 br(),
                 div(
-                  downloadButton("download_template",label = "Download input CSV-file template", icon = "download"),
+                  downloadButton("download_template",label = "Download input CSV-file template",
+                                 icon = icon("download")),
                   align = "center"
                 )
               )

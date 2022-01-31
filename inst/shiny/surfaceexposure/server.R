@@ -3,13 +3,14 @@
 function(input, output, session) {
   
   # input data (with default)
-  values <- reactiveValues(data = example_data, data_used = NULL, args = NULL, results = NULL)
+  values <- reactiveValues(data = example_data, data_used = NULL, args = NULL, results = NULL, error = NULL)
   
   observe({
     # make sure that input panels are registered on non-active tabs.
     # by default tabs are suspended and input variables are hence
     # not available
     outputOptions(x = output, name = "global_fit_ages", suspendWhenHidden = FALSE)
+    outputOptions(x = output, name = "global_fit_mus", suspendWhenHidden = FALSE)
   })
   
   session$onSessionEnded(function() {
@@ -60,7 +61,16 @@ function(input, output, session) {
     if (df_tmp$changes$event == "afterRemoveRow")
       df_tmp$changes$event <- "afterChange"
     
-    if (!is.null(hot_to_r(df_tmp)))
+    if (!is.null(hot_to_r(df_tmp))) {
+      if (nrow(hot_to_r(df_tmp)) > 0) {
+        tryCatch({ 
+          values$data <- hot_to_r(df_tmp)
+        }, error = function(e) { 
+            values$error <- e
+            values$results <- NULL
+          })
+      } 
+    }
       values$data <- hot_to_r(df_tmp)
     
   })
@@ -73,6 +83,18 @@ function(input, output, session) {
     }
   })
   
+  output$global_fit_mus <- renderUI({
+    if (input$global_fit && inherits(values$data_used, "list") && input$override_mu) {
+      if (input$individual_mus)
+        n <- length(values$data_used)
+      else 
+        n <- 1
+      lapply(1:n, function(i) {
+        numericInput(paste0("mus_", i), paste("\\( \\mu \\)", i), value = 0.9, step = 0.1)
+      })
+    }
+  })
+  
   observeEvent(input$coord_flip, {
     tmp <- isolate(input$xlab)
     updateTextInput(session, "xlab", value = isolate(input$ylab))
@@ -81,25 +103,37 @@ function(input, output, session) {
   
   # update for log values
   observe({
+    
+    data <- values$data[complete.cases(values$data), ]
+    
+    if (nrow(data) == 0)
+      return(NULL)
+    
     if (input$logy)
       updateSliderInput(session, "ylim", value = c(0.1, isolate(input$ylim[2])), min = 0.1)
     else
       updateSliderInput(session, "ylim", 
-                        min = min(values$data[ ,2]) - diff(range(values$data[ ,2])) / 2, 
-                        max = max(values$data[ ,2]) + diff(range(values$data[ ,2])) / 2, 
-                        value = range(pretty(values$data[ ,2])))
+                        min = min(data[ ,2]) - diff(range(data[ ,2])) / 2, 
+                        max = max(data[ ,2]) + diff(range(data[ ,2])) / 2, 
+                        value = range(pretty(data[ ,2])))
     
   })
   
   # update for log values
   observe({
+    
+    data <- values$data[complete.cases(values$data), ]
+    
+    if (nrow(data) == 0)
+      return(NULL)
+    
     if (input$logx)
       updateSliderInput(session, "xlim", value = c(0.1, isolate(input$xlim[2])), min = 0.1)
     else
       updateSliderInput(session, "xlim", 
-                        min = min(values$data[ ,1]) - diff(range(values$data[ ,1])) / 2, 
-                        max = max(values$data[ ,1]) + diff(range(values$data[ ,1])) / 2, 
-                        value = range(pretty(values$data[ ,1])))
+                        min = min(data[ ,1]) - diff(range(data[ ,1])) / 2, 
+                        max = max(data[ ,1]) + diff(range(data[ ,1])) / 2, 
+                        value = range(pretty(data[ ,1])))
   })
   
   
@@ -113,9 +147,18 @@ function(input, output, session) {
         NA_index <- which(data$group == "")
         if (length(NA_index) > 0)
           data <- data[-NA_index, ]
+        if (nrow(data) == 0) {
+          values$error <- simpleError("No or invalid data. Please check your input table or file.")
+          values$results <- NULL
+          return(NULL)
+        }
         
         if (is.factor(data$group))
           data$group <- droplevels(data$group)
+        
+        # remove line feeds that might be copied from the clipboard
+        data$group <- gsub("\r", "", data$group)
+        data$group <- gsub("\n", "", data$group)
         
         data <- split(data, data$group)
         # remove any list element with data.frames with 0 rows
@@ -124,7 +167,8 @@ function(input, output, session) {
         values$data_used <- lapply(data, function(x) x[ ,1:2])
       }
     } else {
-      values$data_used <- values$data
+      data <- values$data[complete.cases(values$data), ]
+      values$data_used <- data
     }
     
     # Age
@@ -135,6 +179,21 @@ function(input, output, session) {
         age <- input$age
       else
         age <- NULL
+    }
+    
+    # Mu
+    if (input$global_fit) {
+      if (input$individual_mus && input$override_mu) 
+        mu <- sapply(1:length(values$data_used), function(i) as.numeric(input[[paste0("mus_", i)]]))
+      else if (input$override_mu)
+        mu <- as.numeric(input[["mus_1"]])
+      else
+        mu <- NULL
+    } else {
+      if (input$override_mu)
+        mu <- input$mu
+      else
+        mu <- NULL
     }
     
     # fitting line color
@@ -150,7 +209,7 @@ function(input, output, session) {
       age = age,
       weights = if (input$global_fit) FALSE else input$weights,
       sigmaphi = if (input$override_sigmaphi) input$sigmaphi_base * 10^-(abs(input$sigmaphi_exp)) else NULL,
-      mu = if (input$override_mu) input$mu else NULL,
+      mu = mu,
       Ddot = if (input$doserate) input$ddot else NULL,
       D0  = if (input$doserate) input$d0 else NULL,
       verbose = FALSE,
@@ -190,16 +249,34 @@ function(input, output, session) {
     callModule(RLumShiny:::exportPlotHandler, "export", fun = "fit_SurfaceExposure", args = values$args)
   })
   
+  ## ERROR HANDLING ----
+  output$error <- renderText({
+    # invalidate all reactive values
+    if (!is.null(values$error)) {
+      values$results <- NULL
+      HTML(paste0(
+        tags$br(),
+        tags$p("ERROR!", style = "color:red; font-size:20px;"),
+        values$error$message
+      ))
+    }
+  })
+  
   ## MAIN ----
   output$main_plot <- renderPlot({
     tryCatch({
       values$results <- do.call(fit_SurfaceExposure, values$args)
-    }, error = function(e) print(e))
+    }, error = function(e) {
+      values$error <- e
+      values$results <- NULL
+    })
   })
   
   output$console <- renderText({
     if (is.null(values$results))
       return(NULL)
+    
+    values$error <- NULL
     
     if (!input$global_fit) {
       res <- as.data.frame(t(signif(unlist(get_RLum(values$results)), 3)))
