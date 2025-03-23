@@ -151,7 +151,7 @@ function(input, output, session) {
                 label = "Range x-axis",
                 min = 0,
                 max = round(max(prec)*2, 3),
-                value = c(0, max(prec)*1.05))
+                value = max(prec)*1.05)
   })## EndOf::renderUI()
 
   # dynamically inject sliderInput for z-axis range
@@ -348,7 +348,7 @@ function(input, output, session) {
                 pch = c(pch,pch2),
                 zlab = input$zlab,
                 main = input$main,
-                zlim = input$zlim,
+                zlim = as.numeric(input$zlim),
                 cex = input$cex,
                 mtext = input$mtext,
                 stats = input$statlabels,
@@ -367,8 +367,8 @@ function(input, output, session) {
                 xlab = c(input$xlab1, input$xlab2),
                 ylab = input$ylab,
                 lty = c(as.integer(input$lty), as.integer(input$lty2)),
-                xlim = input$xlim,
-                ylim = input$ylim,
+                xlim = c(0, as.numeric(input$xlim)),
+                ylim = as.numeric(input$ylim),
                 rug = input$rug,
                 layout = input$layout,
                 rotate = input$rotate,
@@ -384,7 +384,7 @@ function(input, output, session) {
 
     # validate(need()) makes sure that all data are available to
     # renderUI({}) before plotting and will wait until there
-    validate(need(expr = input$bw, message = ''),
+    validate(need(expr = req(input$bw), message = ''),
              need(expr = input$zlim, message = ''),
              need(expr = input$ylim, message = ''),
              need(expr = input$centralityNumeric, message = 'Waiting for data... Please wait!'))
@@ -413,15 +413,8 @@ function(input, output, session) {
   })
 
   # renderTable() that prints the data to the second tab
-  output$dataset<- renderDataTable(
+  output$dataset<- DT::renderDT(
     options = list(pageLength = 10, autoWidth = FALSE),
-    callback = "function(table) {
-      table.on('click.dt', 'tr', function() {
-        $(this).toggleClass('selected');
-        Shiny.onInputChange('rows',
-                            table.rows('.selected').values$data.toArray());
-      });
-    }",
 {
   data <- values$data
   colnames(data[[1]])<- c("De","De error")
@@ -430,15 +423,8 @@ function(input, output, session) {
 })##EndOf::renterTable()
 
   # renderTable() that prints the secondary data to the second tab
-  output$dataset2<- renderDataTable(
+  output$dataset2<- DT::renderDT(
     options = list(pageLength = 10, autoWidth = FALSE),
-    callback = "function(table) {
-      table.on('click.dt', 'tr', function() {
-        $(this).toggleClass('selected');
-        Shiny.onInputChange('rows',
-                            table.rows('.selected').values$data.toArray());
-      });
-    }",
 {
   if(!all(is.na(unlist(values$data_secondary)))) {
     data <- values$data
@@ -449,7 +435,7 @@ function(input, output, session) {
 
   # renderTable() to print the results of the
   # central age model (CAM)
-  output$CAM<- renderDataTable(
+  output$CAM<- DT::renderDT(
     options = list(pageLength = 10, autoWidth = FALSE),
     {
       data<- values$data
@@ -457,7 +443,7 @@ function(input, output, session) {
       colnames(t)<- c("Data set","n", "log data", "Central dose", "SE abs.", "OD (%)", "OD error (%)")
       res<- lapply(data, function(x) { calc_CentralDose(x, verbose = FALSE, plot = FALSE) })
       for(i in 1:length(res)) {
-        t[i,1]<- ifelse(i==1,"pimary","secondary")
+        t[i,1]<- ifelse(i==1,"primary","secondary")
         t[i,2]<- length(res[[i]]@data$data[,1])
         t[i,3]<- res[[i]]@data$args$log
         t[i,4:7]<- round(res[[i]]@data$summary[1:4],2)

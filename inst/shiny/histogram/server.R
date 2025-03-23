@@ -84,6 +84,7 @@ function(input, output, session) {
       na.rm = TRUE, 
       cex.global = input$cex, 
       pch = ifelse(input$pch == "custom", input$custompch, as.integer(input$pch) - 1),
+      breaks = ifelse(input$breaks == "custom", input$breaks.num, input$breaks),
       xlim = input$xlim,
       summary.pos = input$sumpos, 
       mtext = input$mtext, 
@@ -91,7 +92,7 @@ function(input, output, session) {
       rug = input$rugs, 
       se = input$errorBars, 
       normal_curve = input$norm, 
-      summary = if (input$summary) input$stats else NA,
+      summary = if (input$summary) input$stats else "",
       xlab = input$xlab,
       ylab = c(input$ylab1, input$ylab2),
       colour = colors)
@@ -118,20 +119,12 @@ function(input, output, session) {
   
   
   # renderTable() that prints the data to the second tab
-  output$dataset<- renderDataTable(
+  output$dataset<- DT::renderDT(
     options = list(pageLength = 10, autoWidth = FALSE),
-    callback = "function(table) {
-    table.on('click.dt', 'tr', function() {
-    $(this).toggleClass('selected');
-    Shiny.onInputChange('rows',
-    table.rows('.selected').data().toArray());
-    });
-}",
     {
       setNames(values$data, c("De", "De error"))
     })##EndOf::renterTable()
-  
-  
+
   # reactive function for gVis plots that allow for dynamic input!
   myOptionsCAM<- reactive({
     options<- list(
@@ -143,7 +136,7 @@ function(input, output, session) {
   
   # renderTable() to print the results of the
   # central age model (CAM)
-  output$CAM<- renderDataTable(
+  output$CAM<- DT::renderDT(
     options = list(pageLength = 10, autoWidth = FALSE),
     {
       
@@ -151,7 +144,7 @@ function(input, output, session) {
       colnames(t)<- c("Data set","n", "log data", "Central dose", "SE abs.", "OD (%)", "OD error (%)")
       res<- lapply(list(values$data), function(x) { calc_CentralDose(x, verbose = FALSE, plot = FALSE) })
       for(i in 1:length(res)) {
-        t[i,1]<- ifelse(i==1,"pimary","secondary")
+        t[i,1]<- ifelse(i==1,"primary","secondary")
         t[i,2]<- length(res[[i]]@data$data[,1])
         t[i,3]<- res[[i]]@data$args$log
         t[i,4:7]<- round(res[[i]]@data$summary[1:4],2)
