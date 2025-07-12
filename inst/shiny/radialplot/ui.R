@@ -16,10 +16,12 @@ function(request) {
                                         # file upload button (data set 1)
                                         fileInput(inputId = "file1",
                                                   label = strong("Primary data set"),
+                                                  placeholder = "A CSV file with two columns (De and De error)",
                                                   accept="text/plain, .csv, text/csv"),
                                         # file upload button (data set 2)
                                         fileInput(inputId = "file2",
                                                   label = strong("Secondary data set"),
+                                                  placeholder = "A CSV file with two columns (De and De error)",
                                                   accept="text/plain, .csv, text/csv"),
                                         # rhandsontable input/output
                                         fluidRow(
@@ -136,7 +138,7 @@ function(request) {
                                           column(width = 6,
                                                  textInput(inputId = "xlab1",
                                                            label = "Label x-axis (upper)",
-                                                           value = "Relative error [%]")
+                                                           value = "Relative standard error [%]")
                                           ),
                                           column(width = 6,
                                                  textInput(inputId = "xlab2",

@@ -13,10 +13,12 @@ function(request) {
                                         # file upload button (data set 1)
                                         fileInput(inputId = "file1",
                                                   label = strong("Primary data set"),
+                                                  placeholder = "A CSV file with two columns (De and De error)",
                                                   accept="text/plain, .csv, text/csv"),
                                         # file upload button (data set 2)
                                         fileInput(inputId = "file2",
                                                   label = strong("Secondary data set"),
+                                                  placeholder = "A CSV file with two columns (De and De error)",
                                                   accept="text/plain, .csv, text/csv"),
                                         # rhandsontable input/output
                                         fluidRow(
@@ -65,14 +67,7 @@ function(request) {
                                                                            #"75 % Quartile" = "q75", #not implemented yet
                                                                            "Skewness" = "skewness",
                                                                            "Kurtosis" = "kurtosis")),
-                                            title = "Statistical parameters to be shown in the summary."),
-                                        br(),
-                                        div(align = "center", h5("Error range")),
-                                        div(align = "left",
-                                            numericInput(inputId = "error",
-                                                         label = "Symmetric error range (%)",
-                                                         value = 10, min = 0, max = 100, step = 1),
-                                            title = "Symmetric error range in percent will be shown as dashed lines in the plot. Set error.range to 0 to void plotting of error ranges.")
+                                            title = "Statistical parameters to be shown in the summary.")
                                ),##EndOf::Tab_2
 
                                # Tab 3: input that refer to the plot rather than the data
@@ -82,7 +77,7 @@ function(request) {
                                             numericInput(inputId = "dose",
                                                          label = "Given dose (primary data set)",
                                                          value = 2800),
-                                            title = "Given dose used for the dose recovery test to normalise data. If only one given dose is provided this given dose is valid for all input data sets (i.e., values is a list). Otherwise a given dose for each input data set has to be provided (e.g., given.dose = c(100,200)). If no given.dose values are plotted without normalisation (might be useful for preheat plateau tests). Note: Unit has to be the same as from the input values (e.g., Seconds or Gray)."),
+                                            title = "Given dose used for the dose recovery test to normalise data. If set to 0, values are plotted without normalisation (might be useful for preheat plateau tests). Note: Unit has to be the same as from the input values (e.g., Seconds or Gray)."),
                                         numericInput(inputId = "dose2", label = "Given dose (secondary data set)", value = 3000),
                                         div(align = "center", h5("Preheat temperatures")),
                                         div(align = "left",
@@ -91,6 +86,12 @@ function(request) {
                                                           value = FALSE),
                                             title = "Optional preheat temperatures to be used for grouping the De values. If specified, the temperatures are assigned to the x-axis."),
                                         conditionalPanel(condition = 'input.preheat == true',
+                                                         div(align = "left",
+                                                             checkboxInput(inputId = "boxplot",
+                                                                           label = "Show as boxplot",
+                                                                           value = FALSE),
+                                                             title = "Plot values that are grouped by preheat temperature as boxplots."),
+
                                                          numericInput(inputId = "ph1", "PH Temperature #1", 180, min = 0),
                                                          numericInput(inputId = "ph2", "PH Temperature #2", 200, min = 0),
                                                          numericInput(inputId = "ph3", "PH Temperature #3", 220, min = 0),
@@ -117,12 +118,14 @@ function(request) {
                                                            value = "")
                                           )
                                         ),
-                                        div(align = "center", h5("Boxplot")),
+
+                                        div(align = "center", h5("Error range")),
                                         div(align = "left",
-                                            checkboxInput(inputId = "boxplot",
-                                                          label = "Plot as boxplot",
-                                                          value = FALSE),
-                                            title = "Optionally plot values that are grouped by preheat temperature as boxplots. Only possible when preheat vector is specified."),
+                                            numericInput(inputId = "error",
+                                                         label = "Symmetric error range (%)",
+                                                         value = 10, min = 0, max = 100, step = 1),
+                                            title = "Symmetric error range in percent that will be shown as dashed lines in the plot. It can be set to 0 to remove the error ranges."),
+
                                         div(align = "center", h5("Scaling")),
                                         sliderInput(inputId = "cex",
                                                     label = "Scaling factor",
@@ -136,17 +139,15 @@ function(request) {
                                         textInput(inputId = "xlab",
                                                   label = "Label x-axis",
                                                   value = "# Aliquot"),
-                                        # inject sliderInput from Server.R
+                                        # inject xlim sliderInput from server.R
                                         uiOutput(outputId = "xlim"),
                                         br(),
                                         div(align = "center", h5("Y-axis")),
                                         textInput(inputId = "ylab",
                                                   label = "Label y-axis",
                                                   value = "Normalised De"),
-                                        sliderInput(inputId = "ylim", label = "Range y-axis",
-                                                    min = 0, max = 3,
-                                                    value = c(0.75, 1.25),
-                                                    step = 0.01)
+                                        # inject ylim sliderInput from server.R
+                                        uiOutput(outputId = "ylim")
                                ),##EndOf::Tab_4
 
                                tabPanel("Datapoints",

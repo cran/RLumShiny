@@ -14,6 +14,11 @@ RLumShinyAddin <- function() {
                      category = "plot",
                      description = "A plot which allows comprehensive presentation of data precision and its dispersion around a central value as well as illustration of a kernel density estimate, histogram and/or dot plot of the dose values."),
 
+    "aliquotsize" = list(title = "Aliquot Size",
+                         keyword = "aliquotsize",
+                         category = "calc",
+                         description = "This function can be used to either estimate the number of grains on an aliquot or to compute the packing density, depending on the arguments provided."),
+
     "cosmic" = list(title = "Cosmic Dose Rate",
                     keyword = "cosmicdose",
                     category = "calc",
@@ -28,6 +33,26 @@ RLumShinyAddin <- function() {
                           keyword = "doserecovery",
                           category = "plot",
                           description = "The function provides a standardised plot output for dose recovery test measurements."),
+
+    "finitemixture" = list(title = "Finite Mixture",
+                           keyword = "finitemixture",
+                           category = "plot",
+                           description = "The function fits a k-component mixture to a De distribution with differing known standard errors; doses and mixing proportions are estimated by maximum likelihood assuming that the log dose estimates come from a mixture of normal distributions."),
+
+    "huntley2006" = list(title = "Huntley (2006)",
+                         keyword = "huntley2006",
+                         category = "plot",
+                         description = "The function calculatse the expected sample specific fraction of saturation based on the model of Huntley (2006), using the approach as implemented in Kars et al. (2008) or Guralnik et al. (2015)"),
+
+    "irsarRF" = list(title = "IRSAR RF",
+                     keyword = "irsarRF",
+                     category = "plot",
+                     description = "The function analyses IRSAR RF measurements on K-feldspar samples performed using the protocol according to Erfurt et al. (2003) and beyond"),
+
+    "lmcurve" = list(title = "LM Curve",
+                     keyword = "lmcurve",
+                     category = "plot",
+                     description = "The function determines weighted non-linear least-squares estimates of the component parameters of an LM-OSL curve (Bulur 1996) for a given number of components"),
 
     "radialplot" = list(title = "Radial Plot",
                         keyword = "radialplot",

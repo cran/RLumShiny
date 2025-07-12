@@ -99,46 +99,69 @@ function(input, output, session) {
     
     if (!is.null(hot_to_r(df_tmp)))
       values$data_secondary <- hot_to_r(df_tmp)
-    
   })
-  
-  
+
   output$xlim<- renderUI({
-    
     data <- values$data
-    
     n <- max(sapply(data, nrow))
 
     sliderInput(inputId = "xlim", label = "Range x-axis",
                 min = 0, max = n*2,
-                value = c(1, n+1))
+                value = c(0, n) + 0.5)
   })
-  
+
+  output$ylim <- renderUI({
+    data <- values$data[[1]]
+    req(input$dose)
+    if (input$dose[[1]] == 0) {
+      ylim <- range(pretty(c(data[, 1] + data[, 2], data[, 1] - data[, 2])))
+      sliderInput(inputId = "ylim", label = "Range y-axis",
+                  min = pretty(ylim[1] * 0.5)[2],
+                  max = ylim[2] * 1.5,
+                  value = c(ylim[1], ylim[2]))
+    } else {
+      ## normalized values
+      sliderInput(inputId = "ylim", label = "Range y-axis",
+                  min = 0, max = 3,
+                  value = c(0.75, 1.25),
+                  step = 0.01)
+    }
+  })
+
+  observeEvent(input$dose, {
+    req(input$dose)
+    updateTextInput(session, "ylab",
+                    value = if (input$dose[[1]] == 0) "De [s]"
+                            else "Normalised De")
+  })
+
   observe({
-    updateTextInput(session, inputId = "xlab", 
+    updateTextInput(session, inputId = "xlab",
                     value = if(input$preheat==TRUE){"Preheat Temperature [\u00B0C]"}else{"# Aliquot"})
   })
-  
+
   observe({
-    
+
     input$refresh
-    
+
     outputOptions(x = output, name = "xlim", suspendWhenHidden = FALSE)
-    
+    outputOptions(x = output, name = "ylim", suspendWhenHidden = FALSE)
+
     # if custom datapoint style get char from separate input panel
     pch <- ifelse(input$pch == "custom", input$custompch, as.integer(input$pch) - 1)
     pch2 <- ifelse(input$pch2 == "custom", input$custompch2, as.integer(input$pch2) - 1)
-    
+
     # if custom datapoint color get RGB code from separate input panel
     color <- ifelse(input$color == "custom", input$rgb, color<- input$color)
-    
+
     # if custom datapoint color get RGB code from separate input panel
     if(length(values$data) > 1) {
       color2 <- ifelse(input$color2 == "custom", input$rgb2, input$color2)
     } else {
-      color2 <- ifelse(input$preheat, color, "white")
+      color2 <- color
     }
-    
+
+    req(input$dose)
     if (length(values$data) == 1){
       given.dose<- input$dose
       legend<- input$legendname
@@ -146,6 +169,7 @@ function(input, output, session) {
       given.dose<- c(input$dose, input$dose2)
       legend<- c(input$legendname, input$legendname2)
     }
+
     legend.pos <- input$legend.pos
     if (!input$showlegend) {
       legend <- NA
@@ -154,10 +178,10 @@ function(input, output, session) {
 
     # save all arguments in a list
     values$args<- list(
-      values = values$data, 
+      values = values$data,
       error.range = input$error,
-      given.dose = given.dose,
-      summary = input$stats,
+      given.dose = as.numeric(given.dose),
+      summary = as.character(input$stats),
       summary.pos = input$sumpos,
       boxplot = input$boxplot,
       legend = legend,
@@ -171,7 +195,7 @@ function(input, output, session) {
       xlim = input$xlim,
       ylim = input$ylim,
       cex = input$cex)
-    
+
     if (input$preheat) {
 
       n<- length(values$data[[1]][,1])
@@ -185,23 +209,21 @@ function(input, output, session) {
       values$args$pch<- rep(values$args$pch, n)
       values$args$col<- rep(values$args$col, n)
     })
-
     }
-      
   })
-  
+
   #### PLOT ####
   output$main_plot <- renderPlot({
-    
+
     validate(
+      need(expr = input$ylim, message = 'Waiting for data... Please wait!'),
       need(expr = input$xlim, message = 'Waiting for data... Please wait!')
     )
-    
+
     # plot DRT Results
     do.call(what = plot_DRTResults, args = values$args)
-    
   })
-  
+
   observe({
     # nested renderText({}) for code output on "R plot code" tab
     code.output <- callModule(RLumShiny:::printCode, "printCode", n_input = 2, 

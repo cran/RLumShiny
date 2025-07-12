@@ -13,12 +13,17 @@
 #' Histogram \tab *histogram* \tab [Luminescence::plot_Histogram] \cr
 #' Kernel Density Estimate Plot \tab *KDE* \tab [Luminescence::plot_KDE] \cr
 #' Radial Plot \tab *radialplot* \tab [Luminescence::plot_RadialPlot] \cr
+#' Aliquot Size \tab *aliquotsize* \tab [Luminescence::calc_AliquotSize] \cr
 #' Dose Recovery Test \tab *doserecovery* \tab [Luminescence::plot_DRTResults] \cr
 #' Cosmic Dose Rate \tab *cosmicdose*  \tab [Luminescence::calc_CosmicDoseRate] \cr
 #' CW Curve Transformation \tab *transformCW* \tab [Luminescence::convert_CW2pHMi], [Luminescence::convert_CW2pLM], [Luminescence::convert_CW2pLMi], [Luminescence::convert_CW2pPMi] \cr
 #' Filter Combinations \tab *filter* \tab [Luminescence::plot_FilterCombinations] \cr
 #' Fast Ratio \tab *fastratio* \tab [Luminescence::calc_FastRatio] \cr
 #' Fading Correction \tab *fading* \tab [Luminescence::analyse_FadingMeasurement], [Luminescence::calc_FadingCorr] \cr
+#' Finite Mixture \tab *finitemixture* \tab [Luminescence::calc_FiniteMixture] \cr
+#' Huntley (2006) \tab *huntley2006* \tab [Luminescence::calc_Huntley2006] \cr
+#' IRSAR RF \tab *irsarRF* \tab [Luminescence::analyse_IRSAR.RF] \cr
+#' LM Curve \tab *lmcurve* \tab [Luminescence::fit_LMCurve] \cr
 #' Test Stimulation Power \tab *teststimulationpower* \tab  [Luminescence::plot_RLum] \cr
 #' Scale Gamma Dose Rate \tab *scalegamma* \tab [Luminescence::scale_GammaDose] \cr
 #' RCarb app \tab *RCarb* \tab [RCarb::model_DoseRate]
@@ -52,11 +57,16 @@
 #' app_RLum("doserecovery")
 #'
 #' # Further apps
+#' app_RLum("aliquotsize")
 #' app_RLum("cosmicdose")
 #' app_RLum("transformCW")
 #' app_RLum("filter")
 #' app_RLum("fastratio")
 #' app_RLum("fading")
+#' app_RLum("finitemixture")
+#' app_RLum("huntley2006")
+#' app_RLum("irsarRF")
+#' app_RLum("lmcurve")
 #' app_RLum("surfaceexposure")
 #' app_RLum("teststimulationpower")
 #' app_RLum("scalegamma")
@@ -68,6 +78,7 @@
 app_RLum <- function(app = NULL, ...) {
 
   valid_apps <- c("abanico",
+                  "aliquotsize",
                   "cosmicdose",
                   "doserecovery",
                   "histogram",
@@ -77,6 +88,10 @@ app_RLum <- function(app = NULL, ...) {
                   "filter",
                   "fastratio",
                   "fading",
+                  "finitemixture",
+                  "huntley2006",
+                  "irsarRF",
+                  "lmcurve",
                   "surfaceexposure",
                   "teststimulationpower",
                   "scalegamma",
@@ -97,5 +112,4 @@ app_RLum <- function(app = NULL, ...) {
     # start application
     app <- shiny::runApp(system.file(paste0("shiny/", app), package = "RLumShiny"), launch.browser = TRUE,  ...)
   }
-
 }
