@@ -15,6 +15,7 @@
 #' Radial Plot \tab *radialplot* \tab [Luminescence::plot_RadialPlot] \cr
 #' Aliquot Size \tab *aliquotsize* \tab [Luminescence::calc_AliquotSize] \cr
 #' Dose Recovery Test \tab *doserecovery* \tab [Luminescence::plot_DRTResults] \cr
+#' Dose ResponseCurve \tab *doseresponsecurve* \tab [Luminescence::plot_DoseResponseCurve] \cr
 #' Cosmic Dose Rate \tab *cosmicdose*  \tab [Luminescence::calc_CosmicDoseRate] \cr
 #' CW Curve Transformation \tab *transformCW* \tab [Luminescence::convert_CW2pHMi], [Luminescence::convert_CW2pLM], [Luminescence::convert_CW2pLMi], [Luminescence::convert_CW2pPMi] \cr
 #' Filter Combinations \tab *filter* \tab [Luminescence::plot_FilterCombinations] \cr
@@ -24,6 +25,8 @@
 #' Huntley (2006) \tab *huntley2006* \tab [Luminescence::calc_Huntley2006] \cr
 #' IRSAR RF \tab *irsarRF* \tab [Luminescence::analyse_IRSAR.RF] \cr
 #' LM Curve \tab *lmcurve* \tab [Luminescence::fit_LMCurve] \cr
+#' Portable OSL \tab *portableOSL* \tab [Luminescence::analyse_portableOSL] \cr
+#' SAR CWOSL \tab *sarCWOSL* \tab [Luminescence::analyse_SAR.CWOSL] \cr
 #' Test Stimulation Power \tab *teststimulationpower* \tab  [Luminescence::plot_RLum] \cr
 #' Scale Gamma Dose Rate \tab *scalegamma* \tab [Luminescence::scale_GammaDose] \cr
 #' RCarb app \tab *RCarb* \tab [RCarb::model_DoseRate]
@@ -55,6 +58,7 @@
 #' app_RLum("KDE")
 #' app_RLum("radialplot")
 #' app_RLum("doserecovery")
+#' app_RLum("doseresponsecurve")
 #'
 #' # Further apps
 #' app_RLum("aliquotsize")
@@ -67,6 +71,8 @@
 #' app_RLum("huntley2006")
 #' app_RLum("irsarRF")
 #' app_RLum("lmcurve")
+#' app_RLum("portableOSL")
+#' app_RLum("sarCWOSL")
 #' app_RLum("surfaceexposure")
 #' app_RLum("teststimulationpower")
 #' app_RLum("scalegamma")
@@ -81,6 +87,7 @@ app_RLum <- function(app = NULL, ...) {
                   "aliquotsize",
                   "cosmicdose",
                   "doserecovery",
+                  "doseresponsecurve",
                   "histogram",
                   "KDE",
                   "radialplot",
@@ -92,6 +99,8 @@ app_RLum <- function(app = NULL, ...) {
                   "huntley2006",
                   "irsarRF",
                   "lmcurve",
+                  "portableOSL",
+                  "sarCWOSL",
                   "surfaceexposure",
                   "teststimulationpower",
                   "scalegamma",
@@ -106,10 +115,12 @@ app_RLum <- function(app = NULL, ...) {
   } else {
 
     # check if keyword is valid
-    if (!any(grepl(app, valid_apps, ignore.case = TRUE)))
+    match.idx <- grepl(app, valid_apps, ignore.case = TRUE)
+    if (!any(match.idx))
       return(message(paste0("Invalid app name: ", app, " \n Valid options are: ", paste(valid_apps, collapse = ", "))))
 
     # start application
+    app <- valid_apps[match.idx]
     app <- shiny::runApp(system.file(paste0("shiny/", app), package = "RLumShiny"), launch.browser = TRUE,  ...)
   }
 }

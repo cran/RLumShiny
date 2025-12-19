@@ -26,6 +26,8 @@ function(input, output, session) {
       return(NULL) # if no file was uploaded return NULL
 
     values$data_primary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
+    if (ncol(values$data_primary) > 2)
+      values$data_primary <- values$data_primary[, 1:2]
   })
 
   # check and read in file (BG DATA SET)
@@ -35,42 +37,20 @@ function(input, output, session) {
       return(NULL) # if no file was uploaded return NULL
 
     values$data_bg <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
+    if (ncol(values$data_bg) > 2)
+      values$data_bg <- values$data_bg[, 1:2]
   })
 
   observeEvent(input$table_in_primary, {
-
-    # Workaround for rhandsontable issue #138
-    # https://github.com/jrowen/rhandsontable/issues/138
-    # See detailed explanation in abanico application
-    df_tmp <- input$table_in_primary
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-
-    if (!is.null(hot_to_r(df_tmp)))
-      values$data_primary <- hot_to_r(df_tmp)
+    res <- rhandsontable_workaround(input$table_in_primary, values)
+    if (!is.null(res))
+      values$data_primary <- res
   })
 
   observeEvent(input$table_bg, {
-
-    # Workaround for rhandsontable issue #138
-    # https://github.com/jrowen/rhandsontable/issues/138
-    # See detailed explanation in abanico application
-    df_tmp <- input$table_bg
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-
-    if (!is.null(hot_to_r(df_tmp)))
-      values$data_bg <- hot_to_r(df_tmp)
+    res <- rhandsontable_workaround(input$table_bg, values)
+    if (!is.null(res))
+      values$data_bg <- res
   })
 
   observe({
@@ -96,7 +76,14 @@ function(input, output, session) {
   })
 
   output$main_plot <- renderPlot({
-    values$results <- do.call(fit_LMCurve, values$args)
+    res <- tryNotify(do.call(fit_LMCurve, values$args))
+    if (inherits(res, "RLum.Results")) {
+      if (!inherits(res$fit, "try-error")) {
+        ## remove existing notifications
+        removeNotification(id = "notification")
+      }
+      values$results <- res
+    }
   })
 
   output$table_in_primary <- renderRHandsontable({
@@ -116,9 +103,10 @@ function(input, output, session) {
   observe({
     # nested renderText({}) for code output on "R plot code" tab
     code.output <- callModule(RLumShiny:::printCode, "printCode",
-                              n_input = 2, join_inputs_in_list = FALSE,
-                              fun = "fit_LMCurve(values = data,\nvalues.bg = data2,",
-                              args = values$args[-2]) # remove values.bg
+                              n_inputs = 2, join_inputs_into_list = FALSE,
+                              list(name = "fit_LMCurve",
+                                   arg1 = "values = data1,\nvalues.bg = data2",
+                                   args = values$args[-2])) # remove values.bg
 
     output$plotCode<- renderText({
       code.output
@@ -135,8 +123,8 @@ function(input, output, session) {
 
     ## photoionisation cross-section results
     cols <- paste0(c("cs", "rel_cs"), rep(1:input$n_components, each = 2))
-    cs.abs <- res[, paste0("cs", 1:input$n_components)]
-    cs.rel <- res[, paste0("rel_cs", 1:input$n_components)]
+    cs.abs <- res[, cols]
+    cs.rel <- res[, cols]
     vals <- data.frame(comp = 1:input$n_components,
                        cs = as.numeric(cs.abs),
                        rel = as.numeric(cs.rel))

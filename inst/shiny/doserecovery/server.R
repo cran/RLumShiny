@@ -2,40 +2,44 @@
 ###                        MAIN PROGRAM                                    ###
 ##############################################################################
 function(input, output, session) {
-  
+
   # input data (with default)
   values <- reactiveValues(data_primary =  if ("startData" %in% names(.GlobalEnv)) startData else ExampleData.DeValues$BT998[7:11,],
                            data_secondary =  setNames(as.data.frame(matrix(NA_real_, nrow = 5, ncol = 2)), c("x", "y")),
                            data = NULL,
                            args = NULL)
-  
+
   session$onSessionEnded(function() {
     stopApp()
   })
-  
+
   # check and read in file (DATA SET 1)
   observeEvent(input$file1, {
     inFile<- input$file1
-    
-    if(is.null(inFile)) 
+
+    if(is.null(inFile))
       return(NULL) # if no file was uploaded return NULL
-    
-    values$data_primary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath 
+
+    values$data_primary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
+    if (ncol(values$data_primary) > 2)
+      values$data_primary <- values$data_primary[, 1:2]
   })
-  
+
   # check and read in file (DATA SET 2)
   observeEvent(input$file2, {
     inFile<- input$file2
-    
-    if(is.null(inFile)) 
+
+    if(is.null(inFile))
       return(NULL) # if no file was uploaded return NULL
-    
-    values$data_secondary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath 
+
+    values$data_secondary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
+    if (ncol(values$data_secondary) > 2)
+      values$data_secondary <- values$data_secondary[, 1:2]
   })
-  
+
   ### GET DATA SETS
   observe({
-    
+
     data <- list(values$data_primary, values$data_secondary)
     data <- lapply(data, function(x) { 
       x_tmp <- x[complete.cases(x), ]
@@ -44,61 +48,34 @@ function(input, output, session) {
     })
     data <- data[!sapply(data, is.null)]
     data <- lapply(data, function(x) setNames(x, c("Dose", "Error")))
-    
+
     values$data <- data
   })
-  
+
   output$table_in_primary <- renderRHandsontable({
     rhandsontable(values$data_primary, 
                   height = 300, 
                   colHeaders = c("Dose", "Error"), 
                   rowHeaders = NULL)
   })
-  
+
   observeEvent(input$table_in_primary, {
-    
-    # Workaround for rhandsontable issue #138 
-    # https://github.com/jrowen/rhandsontable/issues/138
-    df_tmp <- input$table_in_primary
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-    
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-    
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-    
-    if (!is.null(hot_to_r(df_tmp)))
-      values$data_primary <- hot_to_r(df_tmp)
+    res <- rhandsontable_workaround(input$table_in_primary, values)
+    if (!is.null(res))
+      values$data_primary <- res
   })
-  
-  
+
   output$table_in_secondary <- renderRHandsontable({
-    
     rhandsontable(values$data_secondary, 
                   height = 300,
                   colHeaders = c("Dose", "Error"), 
                   rowHeaders = NULL)
   })
-  
+
   observeEvent(input$table_in_secondary, {
-    
-    # Workaround for rhandsontable issue #138 
-    # https://github.com/jrowen/rhandsontable/issues/138
-    # See detailed explanation above
-    df_tmp <- input$table_in_secondary
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-    
-    if (!is.null(hot_to_r(df_tmp)))
-      values$data_secondary <- hot_to_r(df_tmp)
+    res <- rhandsontable_workaround(input$table_in_secondary, values)
+    if (!is.null(res))
+      values$data_secondary <- res
   })
 
   output$xlim<- renderUI({
@@ -106,7 +83,7 @@ function(input, output, session) {
     n <- max(sapply(data, nrow))
 
     sliderInput(inputId = "xlim", label = "Range x-axis",
-                min = 0, max = n*2,
+                min = 0, max = n + 1,
                 value = c(0, n) + 0.5)
   })
 
@@ -148,8 +125,8 @@ function(input, output, session) {
     outputOptions(x = output, name = "ylim", suspendWhenHidden = FALSE)
 
     # if custom datapoint style get char from separate input panel
-    pch <- ifelse(input$pch == "custom", input$custompch, as.integer(input$pch) - 1)
-    pch2 <- ifelse(input$pch2 == "custom", input$custompch2, as.integer(input$pch2) - 1)
+    pch <- ifelse(input$pch == "custom", input$custompch, as.integer(input$pch))
+    pch2 <- ifelse(input$pch2 == "custom", input$custompch2, as.integer(input$pch2))
 
     # if custom datapoint color get RGB code from separate input panel
     color <- ifelse(input$color == "custom", input$rgb, color<- input$color)
@@ -172,7 +149,7 @@ function(input, output, session) {
 
     legend.pos <- input$legend.pos
     if (!input$showlegend) {
-      legend <- NA
+      legend <- NULL
       legend.pos <- c(-999, -999)
     }
 
@@ -215,24 +192,30 @@ function(input, output, session) {
   #### PLOT ####
   output$main_plot <- renderPlot({
 
+    ## remove existing notifications
+    removeNotification(id = "notification")
+
     validate(
       need(expr = input$ylim, message = 'Waiting for data... Please wait!'),
       need(expr = input$xlim, message = 'Waiting for data... Please wait!')
     )
 
     # plot DRT Results
-    do.call(what = plot_DRTResults, args = values$args)
+    tryNotify(do.call(what = plot_DRTResults, args = values$args))
   })
 
   observe({
     # nested renderText({}) for code output on "R plot code" tab
-    code.output <- callModule(RLumShiny:::printCode, "printCode", n_input = 2, 
-                              fun = "plot_DRTResults(data,", args = values$args)
-    
+    code.output <- callModule(RLumShiny:::printCode, "printCode",
+                              n_inputs = 2,
+                              list(name = "plot_DRTResults",
+                                   arg1 = "data",
+                                   args = values$args))
+
     output$plotCode<- renderText({
       code.output
     })##EndOf::renderText({})
-    
+
     callModule(RLumShiny:::exportCodeHandler, "export", code = code.output)
     callModule(RLumShiny:::exportPlotHandler, "export", fun = "plot_DRTResults", args = values$args)
   })

@@ -24,9 +24,14 @@ function(input, output, session) {
       return(NULL) # if no file was uploaded return NULL
 
     values$data_primary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
+    if (ncol(values$data_primary) > 3)
+      values$data_primary <- values$data_primary[, 1:3]
   })
 
   observe({
+    ## remove existing notifications
+    removeNotification(id = "notification")
+
     values$args <- list(
       # calc_Huntley2006 arguments
       data = values$data_primary,
@@ -44,7 +49,6 @@ function(input, output, session) {
       # generic plot arguments
       main = input$main,
       type = input$type,
-      pch = rep(ifelse(input$pch == "custom", input$custompch, as.numeric(input$pch)), 6),
       cex = input$cex,
       xlab = input$xlab,
       ylab = ifelse(input$normalise, paste("normalised", input$ylab), input$ylab),
@@ -56,8 +60,10 @@ function(input, output, session) {
   output$main_plot <- renderPlot({
     showNotification(id = "progress", duration = NULL, "This may take a while")
     set.seed(1)
-    values$results <- do.call(calc_Huntley2006, values$args)
+    res <- tryNotify(do.call(calc_Huntley2006, values$args))
     removeNotification(id = "progress")
+    if (inherits(res, "RLum.Results"))
+      values$results <- res
   })
 
   output$table_in_primary <- renderRHandsontable({
@@ -68,27 +74,18 @@ function(input, output, session) {
   })
 
   observeEvent(input$table_in_primary, {
-
-    # Workaround for rhandsontable issue #138
-    # https://github.com/jrowen/rhandsontable/issues/138
-    # See detailed explanation in abanico application
-    df_tmp <- input$table_in_primary
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-
-      if (!is.null(hot_to_r(df_tmp)))
-      values$data_primary <- hot_to_r(df_tmp)
+    res <- rhandsontable_workaround(input$table_in_primary, values)
+    if (!is.null(res))
+      values$data_primary <- res
   })
 
   observe({
     # nested renderText({}) for code output on "R plot code" tab
-    code.output <- callModule(RLumShiny:::printCode, "printCode", n_input = 1,
-                              fun = "calc_Huntley2006(data,", args = values$args)
+    code.output <- callModule(RLumShiny:::printCode, "printCode",
+                              n_inputs = 1,
+                              list(name = "calc_Huntley2006",
+                                   arg1 = "data",
+                                   args = values$args))
 
     output$plotCode<- renderText({
       code.output

@@ -34,6 +34,11 @@ RLumShinyAddin <- function() {
                           category = "plot",
                           description = "The function provides a standardised plot output for dose recovery test measurements."),
 
+    "doseresponsecurve" = list(title = "Dose Response Curve",
+                               keyword = "doseresponsecurve",
+                               category = "plot",
+                               description = "Plot a dose-response curve for luminescence data (Lx/Tx against dose)."),
+
     "finitemixture" = list(title = "Finite Mixture",
                            keyword = "finitemixture",
                            category = "plot",
@@ -54,10 +59,20 @@ RLumShinyAddin <- function() {
                      category = "plot",
                      description = "The function determines weighted non-linear least-squares estimates of the component parameters of an LM-OSL curve (Bulur 1996) for a given number of components"),
 
+    "portableOSL" = list(title = "Portable OSL",
+                        keyword = "portableOSL",
+                        category = "plot",
+                        description = "The function analyses CW-OSL curve data produced by a SUERC portable OSL reader and produces a combined plot of OSL/IRSL signal intensities, OSL/IRSL depletion ratios  and the IRSL/OSL ratio."),
+
     "radialplot" = list(title = "Radial Plot",
                         keyword = "radialplot",
                         category = "plot",
                         description = "A Galbraith's radial plot is produced on a logarithmic or a linear scale."),
+
+    "sarCWOSL" = list(title = "SAR CWOSL",
+                      keyword = "sarCWOSL",
+                      category = "plot",
+                      description = "The function analyses a standard SAR protocol measurements introduced by Murray and Wintle (2000) with CW-OSL curves."),
 
     "histogram" = list(title = "Histogram",
                        keyword = "histogram",

@@ -25,6 +25,8 @@ function(input, output, session) {
       return(NULL) # if no file was uploaded return NULL
 
     data <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
+    if (ncol(data) > 3)
+      data <- data[, 1:3]
 
     if (ncol(data) == 2) {
       data$error <- 0.0001
@@ -48,30 +50,7 @@ function(input, output, session) {
   })
 
   observeEvent(input$table_in_primary, {
-
-    # Workaround for rhandsontable issue #138
-    # https://github.com/jrowen/rhandsontable/issues/138
-    # See detailed explanation in abanico application
-    df_tmp <- input$table_in_primary
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-
-    if (!is.null(hot_to_r(df_tmp))) {
-      if (nrow(hot_to_r(df_tmp)) > 0) {
-        tryCatch({
-          values$data <- hot_to_r(df_tmp)
-        }, error = function(e) {
-            values$error <- e
-            values$results <- NULL
-          })
-      }
-    }
-      values$data <- hot_to_r(df_tmp)
+    values$data <- rhandsontable_workaround(input$table_in_primary, values)
   })
 
   output$global_fit_ages <- renderUI({
@@ -134,11 +113,8 @@ function(input, output, session) {
                         value = range(pretty(data[ ,1])))
   })
 
-
   observe({
-
     if (input$global_fit) {
-
       # split data frame to list
       if (!all(is.na(values$data$group))) {
         data <- values$data[complete.cases(values$data), ]
@@ -211,7 +187,7 @@ function(input, output, session) {
       Ddot = if (input$doserate) input$ddot else NULL,
       D0  = if (input$doserate) input$d0 else NULL,
       verbose = FALSE,
-      pch = ifelse(input$pch == "custom", input$custompch, as.numeric(input$pch) - 1),
+      pch = ifelse(input$pch == "custom", input$custompch, as.numeric(input$pch)),
       bg = ifelse(input$color == "custom", input$jscol1, input$color),
       cex = input$cex,
       legend = input$legend,
@@ -236,8 +212,11 @@ function(input, output, session) {
 
   observe({
     # nested renderText({}) for code output on "R plot code" tab
-    code.output <- callModule(RLumShiny:::printCode, "printCode", n_input = 1,
-                              fun = paste0("fit_SurfaceExposure(data,"), args = values$args)
+    code.output <- callModule(RLumShiny:::printCode, "printCode",
+                              n_inputs = 1,
+                              list(name = "fit_SurfaceExposure",
+                                   arg1 = "data",
+                                   args = values$args))
 
     output$plotCode<- renderText({
       code.output

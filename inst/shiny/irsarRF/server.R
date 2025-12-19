@@ -22,7 +22,12 @@ function(input, output, session) {
     if (is.null(inFile))
       return(NULL) # if no file was uploaded return NULL
 
+    ## remove existing notifications
+    removeNotification(id = "notification")
+
     nat <- fread(file = inFile$datapath, data.table = FALSE)
+    if (ncol(nat) > 2)
+      nat <- nat[, 1:2]
     values$data_primary@records[[1]]@data <- as.matrix(nat)
   })
 
@@ -32,7 +37,12 @@ function(input, output, session) {
     if (is.null(inFile))
       return(NULL) # if no file was uploaded return NULL
 
+    ## remove existing notifications
+    removeNotification(id = "notification")
+
     reg <- fread(file = inFile$datapath, data.table = FALSE)
+    if (ncol(reg) > 2)
+      reg <- reg[, 1:2]
     values$data_primary@records[[2]]@data <- as.matrix(reg)
   })
 
@@ -79,7 +89,9 @@ function(input, output, session) {
   })
 
   output$main_plot <- renderPlot({
-    values$results <- do.call(analyse_IRSAR.RF, values$args)
+    res <- tryNotify(do.call(analyse_IRSAR.RF, values$args))
+    if (inherits(res, "RLum.Results"))
+      values$results <- res
   })
 
   output$table_natural <- renderRHandsontable({
@@ -107,13 +119,19 @@ function(input, output, session) {
 
   observe({
     # nested renderText({}) for code output on "R plot code" tab
-    fun <- 'data <- set_RLum("RLum.Analysis",
-                 records = list(set_RLum("RLum.Data.Curve", data = as.matrix(data)),
-                                set_RLum("RLum.Data.Curve", data = as.matrix(data2))))'
-    code.output <- callModule(RLumShiny:::printCode, "printCode", n_input = 2,
-                              join_inputs_in_list = FALSE,
-                              fun = paste0(fun, "\nanalyse_IRSAR.RF(data,"),
-                              args = values$args)
+    code.output <- callModule(RLumShiny:::printCode, "printCode",
+                              n_inputs = 2, join_inputs_into_list = FALSE,
+                              list(name = "set_RLum",
+                                   arg1 = '"RLum.Analysis"',
+                                   args = list(dummy = NA,  # the first argument is removed by printCode()
+                                               records = expression(
+                                                   list(set_RLum("RLum.Data.Curve", data = as.matrix(data1)),
+                                                        set_RLum("RLum.Data.Curve", data = as.matrix(data2))))),
+                                   rets = "data",
+                                   info = "create an RLum.Analysis object"),
+                              list(name = "analyse_IRSAR.RF",
+                                   arg1 = "data",
+                                   args = values$args))
 
     output$plotCode<- renderText({
       code.output

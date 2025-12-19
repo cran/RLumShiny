@@ -1,7 +1,7 @@
 ## UI.R
 function(request) {
   fluidPage(
-    titlePanel(NULL, windowTitle = "RLumShiny - SurfaceExposure"),
+    titlePanel("Surface Exposure", windowTitle = "RLumShiny - Surface Exposure"),
     sidebarLayout(
       # 2- width = 5 -> refers to twitters bootstrap grid system
       # where the the maximum width is 12 that is to be shared between all
@@ -122,42 +122,18 @@ function(request) {
                                         textInput(inputId = "main", 
                                                   label = "Title", 
                                                   value = "OSL Surface Exposure Dating"),
-                                        
+
                                         fluidRow(
                                           column(width = 6,
-                                                 selectInput(inputId = "pch",
-                                                             label = "Datapoint style",
-                                                             selected = "22",
-                                                             choices = c("Square"= "1",
-                                                                         "Circle"="2",
-                                                                         "Triangle point up"="3",
-                                                                         "Plus"="4",
-                                                                         "Cross"="5",
-                                                                         "Diamond"="6",
-                                                                         "Triangle point down"="7",
-                                                                         "Square cross"="8",
-                                                                         "Star"="9",
-                                                                         "Diamond plus"="10",
-                                                                         "Circle plus"="11",
-                                                                         "Triangles up and down"="12",
-                                                                         "Square plus"="13",
-                                                                         "Circle cross"="14",
-                                                                         "Square and Triangle down"="15",
-                                                                         "filled Square"="16",
-                                                                         "filled Circle"="17",
-                                                                         "filled Triangle point up"="18",
-                                                                         "filled Diamond"="19",
-                                                                         "solid Circle"="20",
-                                                                         "Bullet (smaller Circle)"="21",
-                                                                         "filled Circle w/ outline" = "22",
-                                                                         "Custom"="custom"))
+                                                 pointSymbolChooser(inputId = "pch",
+                                                                    label = "Datapoint style",
+                                                                    selected = "21")
                                           ),
                                           column(width = 6,
                                                  # show only if custom symbol is desired
                                                  conditionalPanel(condition = "input.pch == 'custom'",
-                                                                  textInput(inputId = "custompch", 
-                                                                            label = "Insert character", 
-                                                                            value = "?"))
+                                                                  customSymbolChooser(inputId = "custompch")
+                                                                  )
                                           )
                                         ),
                                         fluidRow(

@@ -34,6 +34,9 @@ function(input, output, session) {
   })
 
   output$main_plot <- renderPlot({
+    ## remove existing notifications
+    removeNotification(id = "notification")
+
     if (input$mode == "pd") {
       values$args$packing.density <- input$packing_density
       values$args$grains.counted <- NULL
@@ -41,7 +44,7 @@ function(input, output, session) {
       values$args$grains.counted <- input$grains_counted
       values$args$packing.density <- NULL
     }
-    values$results <- do.call(calc_AliquotSize, values$args)
+    tryNotify(values$results <- do.call(calc_AliquotSize, values$args))
   })
 
   # Render numeric results in a data table
@@ -89,8 +92,11 @@ function(input, output, session) {
     } else {
       values$args$packing.density <- NULL
     }
-    code.output <- callModule(RLumShiny:::printCode, "printCode", n_input = 0,
-                              fun = "calc_AliquotSize(", args = values$args)
+    code.output <- callModule(RLumShiny:::printCode, "printCode",
+                              n_inputs = 0,
+                              list(name = "calc_AliquotSize",
+                                   args = c(dummy = NA, # the first argument is removed by printCode()
+                                            values$args)))
 
     output$plotCode<- renderText({
       code.output

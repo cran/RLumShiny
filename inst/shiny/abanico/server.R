@@ -52,6 +52,9 @@ function(input, output, session) {
   })
 
   output$table_in_primary <- renderRHandsontable({
+    ## remove existing notifications
+    removeNotification(id = "notification")
+
     rhandsontable(values$data_primary,
                   height = 300,
                   colHeaders = c("Dose", "Error"),
@@ -59,36 +62,14 @@ function(input, output, session) {
   })
 
   observeEvent(input$table_in_primary, {
-
-    # Workaround for rhandsontable issue #138
-    # https://github.com/jrowen/rhandsontable/issues/138
-    # Desc.: the rownames are not updated when copying values in the table
-    # that exceed the current number of rows; hence, we have to manually
-    # update the rownames before running hot_to_r(), which would crash otherwise
-
-    # to modify the rhandsontable we need to create a local non-reactive variable
-    df_tmp <- input$table_in_primary
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-
-    # now overwrite the erroneous entries in the list: 'rRowHeaders', 'rowHeaders'
-    # and 'rDataDim'
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-
-    # With the above workaround we run into the problem that the 'afterRemoveRow'
-    # event checked in rhandsontable:::toR also tries to remove the surplus rowname(s)
-    # For now, we can overwrite the event and handle the 'afterRemoveRow' as a usual
-    # 'afterChange' event
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-
-    if (!is.null(hot_to_r(df_tmp)))
-      values$data_primary <- hot_to_r(df_tmp)
+    res <- rhandsontable_workaround(input$table_in_primary, values)
+    if (!is.null(res))
+      values$data_primary <- res
   })
 
   output$table_in_secondary <- renderRHandsontable({
+    ## remove existing notifications
+    removeNotification(id = "notification")
 
     rhandsontable(values$data_secondary,
                   height = 300,
@@ -96,24 +77,10 @@ function(input, output, session) {
                   rowHeaders = NULL)
   })
 
-
   observeEvent(input$table_in_secondary, {
-
-    # Workaround for rhandsontable issue #138
-    # https://github.com/jrowen/rhandsontable/issues/138
-    # See detailed explanation above
-    df_tmp <- input$table_in_secondary
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-
-    if (!is.null(hot_to_r(df_tmp)))
-      values$data_secondary <- hot_to_r(df_tmp)
-
+    res <- rhandsontable_workaround(input$table_in_secondary, values)
+    if (!is.null(res))
+      values$data_secondary <- res
   })
 
   # check and read in file (DATA SET 1)
@@ -124,6 +91,8 @@ function(input, output, session) {
       return(NULL) # if no file was uploaded return NULL
 
     values$data_primary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
+    if (ncol(values$data_primary) > 2)
+      values$data_primary <- values$data_primary[, 1:2]
   })
 
   # check and read in file (DATA SET 2)
@@ -134,6 +103,8 @@ function(input, output, session) {
       return(NULL) # if no file was uploaded return NULL
 
     values$data_secondary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
+    if (ncol(values$data_secondary) > 2)
+      values$data_secondary <- values$data_secondary[, 1:2]
   })
 
   # dynamically inject sliderInput for x-axis range
@@ -146,21 +117,21 @@ function(input, output, session) {
     } else {
       sd<- unlist(lapply(data, function(x) x[,2]))
     }
-    prec<- 1/sd
+    prec <- max(1 / sd)
     sliderInput(inputId = "xlim", sep="",
                 label = "Range x-axis",
                 min = 0,
-                max = round(max(prec)*2, 3),
-                value = max(prec)*1.05)
+                max = round(prec * 2, 3),
+                value = prec * 1.05)
   })## EndOf::renderUI()
 
   # dynamically inject sliderInput for z-axis range
   output$zlim<- renderUI({
-
     data<- unlist(lapply(values$data, function(x) x[,1]))
-
     min<- min(data)
     max<- max(data)
+    if (input$logz)
+      min <- max(min, 0.01)
     sliderInput(inputId = "zlim",  sep="",
                 label = "Range z-axis",
                 min = min*0.25,
@@ -183,7 +154,7 @@ function(input, output, session) {
   # dynamically inject sliderInput for KDE bandwidth
   output$bw<- renderUI({
     data<- unlist(lapply(values$data, function(x) x[,1]))
-    if(input$logz == TRUE) {
+    if (input$logz && all(data > 0)) {
       data<- log(data)
       min<- 0.001
       value<- bw.nrd0(data)*2
@@ -243,10 +214,10 @@ function(input, output, session) {
     }
 
     # if custom datapoint style get char from separate input panel
-    pch<- ifelse(input$pch == "custom", input$custompch, as.integer(input$pch)-1)
+    pch <- ifelse(input$pch == "custom", input$custompch, as.integer(input$pch))
 
     # if custom datapoint style get char from separate input panel
-    pch2<- ifelse(input$pch2 == "custom", input$custompch2, as.integer(input$pch2)-1)
+    pch2 <- ifelse(input$pch2 == "custom", input$custompch2, as.integer(input$pch2))
 
     # create numeric vector of lines
     line <- sapply(1:8, function(x) input[[paste0("line", x)]])
@@ -302,7 +273,7 @@ function(input, output, session) {
     # workaround: if no legend wanted set label to NA and hide
     # symbol on coordinates -999, -999
     if(input$showlegend == FALSE) {
-      legend<- c(NA,NA)
+      legend <- NULL
       legend.pos<- c(-999,-999)
     } else {
       if(!all(is.na(unlist(values$data_secondary))))
@@ -376,7 +347,7 @@ function(input, output, session) {
                 kde = input$kde,
                 hist = input$histogram,
                 dots = input$dots,
-                frame = input$frame)
+                frame = as.integer(input$frame))
   })
 
   # render Abanico Plot
@@ -390,15 +361,16 @@ function(input, output, session) {
              need(expr = input$centralityNumeric, message = 'Waiting for data... Please wait!'))
 
     # plot Abanico Plot
-    do.call(what = plot_AbanicoPlot, args = values$args)
-
+    tryNotify(do.call(what = plot_AbanicoPlot, args = values$args))
   })##EndOf::renderPlot({})
 
   observe({
     # nested renderText({}) for code output on "R plot code" tab
     code.output <- callModule(RLumShiny:::printCode, "printCode",
-                              n_input = ifelse(!all(is.na(unlist(values$data_secondary))), 2, 1),
-                              fun = "plot_AbanicoPlot(data,", args = values$args)
+                              n_inputs = ifelse(!all(is.na(unlist(values$data_secondary))), 2, 1),
+                              list(name = "plot_AbanicoPlot",
+                                   arg1 = "data",
+                                   args = values$args))
 
     output$plotCode<- renderText({
       code.output

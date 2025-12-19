@@ -7,15 +7,6 @@ function(input, output, session) {
     data <- startData
   } else {
     data <- merge_RLum(ExampleData.portableOSL)
-
-    ## add coordinates so that the surface mode works
-    sample.names <- unique(sapply(data@records, function(x) x@info$settings$Sample))
-    data@records <- lapply(data@records, function(x) {
-      name <- x@info$settings$Sample
-      set.seed(match(name, sample.names))
-      x@info$settings$Sample <- paste0(name, "_x:", runif(1), "|y:", runif(1))
-      x
-    })
   }
   values <- reactiveValues(data_primary = data,
                            args = NULL,
@@ -32,25 +23,13 @@ function(input, output, session) {
     if(is.null(inFile))
       return(NULL) # if no file was uploaded return NULL
 
-    values$data_primary <- fread(file = inFile$datapath, data.table = FALSE) # inFile[1] contains filepath
-  })
-
-  observeEvent(input$table_in_primary, {
-
-    # Workaround for rhandsontable issue #138
-    # https://github.com/jrowen/rhandsontable/issues/138
-    # See detailed explanation in abanico application
-    df_tmp <- input$table_in_primary
-    row_names <-  as.list(as.character(seq_len(length(df_tmp$data))))
-    df_tmp$params$rRowHeaders <- row_names
-    df_tmp$params$rowHeaders <- row_names
-    df_tmp$params$rDataDim <- as.list(c(length(row_names),
-                                        length(df_tmp$params$columns)))
-    if (df_tmp$changes$event == "afterRemoveRow")
-      df_tmp$changes$event <- "afterChange"
-
-    if (!is.null(hot_to_r(df_tmp)))
-      values$data_primary <- hot_to_r(df_tmp)
+    ## read psl file
+    if (tools::file_ext(inFile$name) == "psl") {
+      # import the file as RLum.Analysis object
+      values$data_primary <- read_PSL2R(inFile$datapath,
+                                        fastForward = TRUE,
+                                        verbose = FALSE)
+    }
   })
 
   observe({
@@ -85,13 +64,21 @@ function(input, output, session) {
   })
 
   output$main_plot <- renderPlot({
-    values$results <- do.call(analyse_portableOSL, values$args)
+    ## remove existing notifications
+    removeNotification(id = "notification")
+
+    res <- tryNotify(do.call(analyse_portableOSL, values$args))
+    if (inherits(res, "RLum.Results"))
+      values$results <- res
   })
 
   observe({
     # nested renderText({}) for code output on "R plot code" tab
-    code.output <- callModule(RLumShiny:::printCode, "printCode", n_input = 1,
-                              fun = "analyse_portableOSL(data,", args = values$args)
+    code.output <- callModule(RLumShiny:::printCode, "printCode",
+                              n_inputs = 1,
+                              list(name = "analyse_portableOSL",
+                                   arg1 = "data",
+                                   args = values$args))
 
     output$plotCode<- renderText({
       code.output

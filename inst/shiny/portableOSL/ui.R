@@ -1,32 +1,17 @@
 ## UI.R
 function(request) {
   fluidPage(
-    titlePanel(NULL, windowTitle = "RLumShiny - Portable OSL"),
+    titlePanel("Portable OSL", windowTitle = "RLumShiny - Portable OSL"),
     sidebarLayout(
       # 2- width = 5 -> refers to twitters bootstrap grid system
       # where the the maximum width is 12 that is to be shared between all
       # elements
       sidebarPanel(width = 5,
                    # include a tabs in the input panel for easier navigation
-                   tabsetPanel(id = "tabs", type = "pill", selected = "Data",
-                               # Tab 1: Data input
-                               tabPanel("Data",
-
-                                        # informational text
-                                        div(align = "center", h5("Data upload")),
-                                        # file upload button (data set 1)
-                                        fileInput(inputId = "file",
-                                                  label = strong("Primary data set"),
-                                                  placeholder = "A CSV file with two columns (Time and Counts)",
-                                                  accept="text/plain, .csv, text/csv"),
-                                        # rhandsontable input/output
-                                        fluidRow(
-                                          column(width = 6,
-                                                 rHandsontableOutput(outputId = "table_in_primary")
-                                          )
-                                        )
-
-                               ),##EndOf::Tab_1
+                   tabsetPanel(id = "tabs", type = "pill", selected = "Import",
+                               RLumShiny:::importTab("import",
+                                                     label = "Measurement file (.psl)",
+                                                     accept = "text/plain, .psl"),
 
                                tabPanel("Method",
                                         div(align = "center", h5("Input data preprocessing")),
@@ -63,38 +48,15 @@ function(request) {
                                                                       ),
                                                          fluidRow(
                                                              column(width = 6,
-                                                                    selectInput(inputId = "pch",
-                                                                                label = "Point style",
-                                                                                selected = "16",
-                                                                                choices = c("Square"= "0",
-                                                                                            "Circle"="1",
-                                                                                            "Triangle point up"="2",
-                                                                                            "Plus"="3",
-                                                                                            "Cross"="4",
-                                                                                            "Diamond"="5",
-                                                                                            "Triangle point down"="6",
-                                                                                            "Square cross"="7",
-                                                                                            "Star"="8",
-                                                                                            "Diamond plus"="9",
-                                                                                            "Circle plus"="10",
-                                                                                            "Triangles up and down"="11",
-                                                                                            "Square plus"="12",
-                                                                                            "Circle cross"="13",
-                                                                                            "Square and Triangle down"="14",
-                                                                                            "filled Square"="15",
-                                                                                            "filled Circle"="16",
-                                                                                            "filled Triangle point up"="17",
-                                                                                            "filled Diamond"="18",
-                                                                                            "solid Circle"="19",
-                                                                                            "Bullet (smaller Circle)"="20",
-                                                                                            "Custom"="custom"))
+                                                                    pointSymbolChooser(inputId = "pch",
+                                                                                       label = "Point style",
+                                                                                       selected = "16")
                                                                     ),
                                                              column(width = 6,
                                                                     # show only if custom symbol is desired
                                                                     conditionalPanel(condition = "input.pch == 'custom'",
-                                                                                     textInput(inputId = "custompch",
-                                                                                               label = "Insert character",
-                                                                                               value = "?"))
+                                                                                     customSymbolChooser(inputId = "custompch")
+                                                                                     )
                                                                     )
                                                          ),
 

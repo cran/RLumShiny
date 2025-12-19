@@ -1,43 +1,39 @@
 ## UI.R
 function(request) {
   fluidPage(
-    titlePanel(NULL, windowTitle = "RLumShiny - LM Curve"),
+    titlePanel("LM Curve", windowTitle = "RLumShiny - LM Curve"),
     sidebarLayout(
       # 2- width = 5 -> refers to twitters bootstrap grid system
       # where the the maximum width is 12 that is to be shared between all
       # elements
       sidebarPanel(width = 5,
                    # include a tabs in the input panel for easier navigation
-                   tabsetPanel(id = "tabs", type = "pill", selected = "Data",
+                   tabsetPanel(id = "tabs", type = "pill", selected = "Import",
                                # Tab 1: Data input
-                               tabPanel("Data",
-
-                                        # informational text
-                                        div(align = "center", h5("Data upload")),
-                                        # file upload button (data set 1)
-                                        fileInput(inputId = "file",
-                                                  label = strong("Primary data set"),
-                                                  placeholder = "A CSV file with two columns (Time and Counts)",
-                                                  accept="text/plain, .csv, text/csv"),
-                                        # file upload button (bg data set)
-                                        fileInput(inputId = "file_bg",
-                                                  label = strong("Background data set"),
-                                                  placeholder = "A CSV file with two columns (Time and Counts)",
-                                                  accept="text/plain, .csv, text/csv"),
-                                        # rhandsontable input/output
-                                        fluidRow(
-                                          column(width = 6,
-                                                 rHandsontableOutput(outputId = "table_in_primary")
-                                          ),
-                                          column(width = 6,
-                                                 rHandsontableOutput(outputId = "table_bg")
-                                          )
-                                        )
-
-                               ),##EndOf::Tab_1
+                               RLumShiny:::importTab("import",
+                                                     "CSV file with two columns (Time and Counts)",
+                                                     "text/csv, .csv",
+                                                     callback = function() {
+                                                       list(
+                                                           # bg data set file upload
+                                                           fileInput(inputId = "file_bg",
+                                                                     label = strong("Background data set"),
+                                                                     placeholder = "CSV file with two columns (Time and Counts)",
+                                                                     accept = "text/csv, .csv"),
+                                                           # rhandsontable input/output
+                                                           fluidRow(
+                                                               column(width = 6,
+                                                                      rHandsontableOutput(outputId = "table_in_primary")
+                                                                      ),
+                                                               column(width = 6,
+                                                                      rHandsontableOutput(outputId = "table_bg")
+                                                                      )
+                                                           )
+                                                       )
+                                                     }
+                               ), ## EndOf::Tab_1
 
                                tabPanel("Method",
-
                                         div(align = "center", h5("Fitting")),
                                         sliderInput(inputId = "n_components",
                                                     "Number of components",
