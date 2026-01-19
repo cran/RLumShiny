@@ -1,8 +1,8 @@
 Package: RLumShiny
 Type: Package
 Title: 'Shiny' Applications for the R Package 'Luminescence'
-Version: 0.2.6
-Date: 2025-12-18
+Version: 0.2.7
+Date: 2026-01-18
 Authors@R: c(
  person("Christoph", "Burow", role = c("aut", "cre"), email = "christoph.burow@gmx.net", comment = c(ORCID = "0000-0002-5023-4046")),
  person("Urs Tilmann", "Wolpert", role = c("aut")),
@@ -30,7 +30,7 @@ URL: https://tzerk.github.io/RLumShiny/
 BugReports: https://github.com/tzerk/RLumShiny/issues
 RoxygenNote: 7.3.3
 NeedsCompilation: no
-Packaged: 2025-12-18 17:15:40 UTC; fury
+Packaged: 2026-01-18 20:25:57 UTC; fury
 Author: Christoph Burow [aut, cre] (ORCID:
     <https://orcid.org/0000-0002-5023-4046>),
   Urs Tilmann Wolpert [aut],
@@ -43,4 +43,4 @@ Author: Christoph Burow [aut, cre] (ORCID:
   RStudio [cph] (chooser_inputBinding.js in www/ and chooser.R in R/)
 Maintainer: Christoph Burow <christoph.burow@gmx.net>
 Repository: CRAN
-Date/Publication: 2025-12-19 06:20:22 UTC
+Date/Publication: 2026-01-19 06:51:05 UTC
